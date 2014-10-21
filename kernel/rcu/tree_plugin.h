@@ -1513,17 +1513,10 @@ static void rcu_prepare_kthreads(int cpu)
  * any flavor of RCU.
  */
 #ifndef CONFIG_RCU_NOCB_CPU_ALL
-int rcu_needs_cpu(int cpu, unsigned long *delta_jiffies)
+int rcu_needs_cpu(unsigned long *delta_jiffies)
 {
 	*delta_jiffies = ULONG_MAX;
-	return rcu_cpu_has_callbacks(cpu);
-}
-
-/*
- * Because we do not have RCU_FAST_NO_HZ, don't bother initializing for it.
- */
-static void rcu_prepare_for_idle_init(int cpu)
-{
+	return rcu_cpu_has_callbacks(NULL);
 }
 #endif /* #ifndef CONFIG_RCU_NOCB_CPU_ALL */
 
@@ -1663,15 +1656,15 @@ static bool rcu_cpu_has_nonlazy_callbacks(int cpu)
  * a timer.
  */
 #ifndef CONFIG_RCU_NOCB_CPU_ALL
-int rcu_needs_cpu(int cpu, unsigned long *delta_jiffies)
+int rcu_needs_cpu(unsigned long *dj)
 {
-	struct rcu_dynticks *rdtp = &per_cpu(rcu_dynticks, cpu);
+	struct rcu_dynticks *rdtp = this_cpu_ptr(&rcu_dynticks);
 
 	/* Flag a new idle sojourn to the idle-entry state machine. */
 	rdtp->idle_first_pass = 1;
 	/* If no callbacks, RCU doesn't need the CPU. */
-	if (!rcu_cpu_has_callbacks(cpu)) {
-		*delta_jiffies = ULONG_MAX;
+	if (!rcu_cpu_has_callbacks(&rdtp->all_lazy)) {
+		*dj = ULONG_MAX;
 		return 0;
 	}
 	if (rdtp->dyntick_holdoff == jiffies) {
@@ -1780,7 +1773,7 @@ static void rcu_prepare_for_idle(int cpu)
 	/* Handle nohz enablement switches conservatively. */
 	tne = ACCESS_ONCE(tick_nohz_active);
 	if (tne != rdtp->tick_nohz_enabled_snap) {
-		if (rcu_cpu_has_callbacks(cpu))
+		if (rcu_cpu_has_callbacks(NULL))
 			invoke_rcu_core(); /* force nohz to see update. */
 		rdtp->tick_nohz_enabled_snap = tne;
 		return;

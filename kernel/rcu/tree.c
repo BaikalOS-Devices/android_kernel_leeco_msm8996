@@ -3184,15 +3184,23 @@ static int rcu_pending(void)
  * by the current CPU, even if none need be done immediately, returning
  * 1 if so.
  */
-static int __maybe_unused rcu_cpu_has_callbacks(int cpu)
+static int __maybe_unused rcu_cpu_has_callbacks(bool *all_lazy)
 {
 	struct rcu_state *rsp;
 
-	/* RCU callbacks either ready or pending? */
-	for_each_rcu_flavor(rsp)
-		if (per_cpu_ptr(rsp->rda, cpu)->nxtlist)
-			return 1;
-	return 0;
+	for_each_rcu_flavor(rsp) {
+		rdp = this_cpu_ptr(rsp->rda);
+		if (!rdp->nxtlist)
+			continue;
+		hc = true;
+		if (rdp->qlen != rdp->qlen_lazy || !all_lazy) {
+			al = false;
+			break;
+		}
+	}
+	if (all_lazy)
+		*all_lazy = al;
+	return hc;
 }
 
 /*
