@@ -1524,7 +1524,7 @@ int rcu_needs_cpu(unsigned long *delta_jiffies)
  * Because we do not have RCU_FAST_NO_HZ, don't bother cleaning up
  * after it.
  */
-static void rcu_cleanup_after_idle(int cpu)
+static void rcu_cleanup_after_idle(void)
 {
 }
 
@@ -1831,44 +1831,15 @@ static void rcu_prepare_for_idle(void)
 			rcu_gp_kthread_wake(rsp);
 	}
 
-	/*
-	 * If in holdoff mode, just return.  We will presumably have
-	 * refrained from disabling the scheduling-clock tick.
-	 */
-	if (rdtp->dyntick_holdoff == jiffies) {
-		trace_rcu_prep_idle("In holdoff");
-		return;
-	}
-
-	/* Check and update the ->dyntick_drain sequencing. */
-	if (rdtp->dyntick_drain <= 0) {
-		/* First time through, initialize the counter. */
-		rdtp->dyntick_drain = rcu_idle_flushes;
-	} else if (rdtp->dyntick_drain <= rcu_idle_opt_flushes &&
-		   !rcu_pending(cpu) &&
-		   !local_softirq_pending()) {
-		/* Can we go dyntick-idle despite still having callbacks? */
-		rdtp->dyntick_drain = 0;
-		rdtp->dyntick_holdoff = jiffies;
-		if (rcu_cpu_has_nonlazy_callbacks(cpu)) {
-			trace_rcu_prep_idle("Dyntick with callbacks");
-			rdtp->idle_gp_timer_expires =
-				round_up(jiffies + rcu_idle_gp_delay,
-					 rcu_idle_gp_delay);
-		} else {
-			rdtp->idle_gp_timer_expires =
-				round_jiffies(jiffies + rcu_idle_lazy_gp_delay);
-			trace_rcu_prep_idle("Dyntick with lazy callbacks");
-		}
-		tp = &rdtp->idle_gp_timer;
-		mod_timer_pinned(tp, rdtp->idle_gp_timer_expires);
-		rdtp->nonlazy_posted_snap = rdtp->nonlazy_posted;
-		return; /* Nothing more to do immediately. */
-	} else if (--(rdtp->dyntick_drain) <= 0) {
-		/* We have hit the limit, so time to give up. */
-		rdtp->dyntick_holdoff = jiffies;
-		trace_rcu_prep_idle("Begin holdoff");
-		invoke_rcu_core();  /* Force the CPU out of dyntick-idle. */
+/*
+ * Clean up for exit from idle.  Attempt to advance callbacks based on
+ * any grace periods that elapsed while the CPU was idle, and if any
+ * callbacks are now ready to invoke, initiate invocation.
+ */
+static void rcu_cleanup_after_idle(void)
+{
+#ifndef CONFIG_RCU_NOCB_CPU_ALL
+	if (rcu_is_nocb_cpu(smp_processor_id()))
 		return;
 	}
 
