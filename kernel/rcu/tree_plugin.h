@@ -1532,7 +1532,7 @@ static void rcu_cleanup_after_idle(int cpu)
  * Do the idle-entry grace-period work, which, because CONFIG_RCU_FAST_NO_HZ=n,
  * is nothing.
  */
-static void rcu_prepare_for_idle(int cpu)
+static void rcu_prepare_for_idle(void)
 {
 }
 
@@ -1763,11 +1763,14 @@ static void rcu_cleanup_after_idle(int cpu)
  *
  * The caller must have disabled interrupts.
  */
-static void rcu_prepare_for_idle(int cpu)
+static void rcu_prepare_for_idle(void)
 {
 #ifndef CONFIG_RCU_NOCB_CPU_ALL
-	struct timer_list *tp;
-	struct rcu_dynticks *rdtp = &per_cpu(rcu_dynticks, cpu);
+	bool needwake;
+	struct rcu_data *rdp;
+	struct rcu_dynticks *rdtp = this_cpu_ptr(&rcu_dynticks);
+	struct rcu_node *rnp;
+	struct rcu_state *rsp;
 	int tne;
 
 	/* Handle nohz enablement switches conservatively. */
@@ -1781,23 +1784,8 @@ static void rcu_prepare_for_idle(int cpu)
 	if (!tne)
 		return;
 
-	/* Adaptive-tick mode, where usermode execution is idle to RCU. */
-	if (!is_idle_task(current)) {
-		rdtp->dyntick_holdoff = jiffies - 1;
-		if (rcu_cpu_has_nonlazy_callbacks(cpu)) {
-			trace_rcu_prep_idle("User dyntick with callbacks");
-			rdtp->idle_gp_timer_expires =
-				round_up(jiffies + rcu_idle_gp_delay,
-					 rcu_idle_gp_delay);
-		} else if (rcu_cpu_has_callbacks(cpu)) {
-			rdtp->idle_gp_timer_expires =
-				round_jiffies(jiffies + rcu_idle_lazy_gp_delay);
-			trace_rcu_prep_idle("User dyntick with lazy callbacks");
-		} else {
-			return;
-		}
-		tp = &rdtp->idle_gp_timer;
-		mod_timer_pinned(tp, rdtp->idle_gp_timer_expires);
+	/* If this is a no-CBs CPU, no callbacks, just return. */
+	if (rcu_is_nocb_cpu(smp_processor_id()))
 		return;
 	}
 
@@ -1829,6 +1817,18 @@ static void rcu_prepare_for_idle(int cpu)
 		rdtp->dyntick_drain = 0;
 		trace_rcu_prep_idle("No callbacks");
 		return;
+	rdtp->last_accelerate = jiffies;
+	for_each_rcu_flavor(rsp) {
+		rdp = this_cpu_ptr(rsp->rda);
+		if (!*rdp->nxttail[RCU_DONE_TAIL])
+			continue;
+		rnp = rdp->mynode;
+		raw_spin_lock(&rnp->lock); /* irqs already disabled. */
+		smp_mb__after_unlock_lock();
+		needwake = rcu_accelerate_cbs(rsp, rnp, rdp);
+		raw_spin_unlock(&rnp->lock); /* irqs remain disabled. */
+		if (needwake)
+			rcu_gp_kthread_wake(rsp);
 	}
 
 	/*
