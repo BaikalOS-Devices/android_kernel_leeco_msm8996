@@ -1383,13 +1383,12 @@ static void rcu_prepare_kthreads(int cpu)
  * Because we not have RCU_FAST_NO_HZ, just check whether this CPU needs
  * any flavor of RCU.
  */
-#ifndef CONFIG_RCU_NOCB_CPU_ALL
 int rcu_needs_cpu(unsigned long *delta_jiffies)
 {
 	*delta_jiffies = ULONG_MAX;
-	return rcu_cpu_has_callbacks(NULL);
+	return IS_ENABLED(CONFIG_RCU_NOCB_CPU_ALL)
+	       ? 0 : rcu_cpu_has_callbacks(NULL);
 }
-#endif /* #ifndef CONFIG_RCU_NOCB_CPU_ALL */
 
 /*
  * Because we do not have RCU_FAST_NO_HZ, don't bother cleaning up
@@ -1534,13 +1533,18 @@ static bool rcu_cpu_has_nonlazy_callbacks(int cpu)
  * delayed until the wakeup time, which defeats the purpose of posting
  * a timer.
  */
-#ifndef CONFIG_RCU_NOCB_CPU_ALL
 int rcu_needs_cpu(unsigned long *dj)
 {
 	struct rcu_dynticks *rdtp = this_cpu_ptr(&rcu_dynticks);
 
-	/* Flag a new idle sojourn to the idle-entry state machine. */
-	rdtp->idle_first_pass = 1;
+	if (IS_ENABLED(CONFIG_RCU_NOCB_CPU_ALL)) {
+		*dj = ULONG_MAX;
+		return 0;
+	}
+
+	/* Snapshot to detect later posting of non-lazy callback. */
+	rdtp->nonlazy_posted_snap = rdtp->nonlazy_posted;
+
 	/* If no callbacks, RCU doesn't need the CPU. */
 	if (!rcu_cpu_has_callbacks(&rdtp->all_lazy)) {
 		*dj = ULONG_MAX;
@@ -1561,7 +1565,6 @@ int rcu_needs_cpu(unsigned long *dj)
 	}
 	return 0;
 }
-#endif /* #ifndef CONFIG_RCU_NOCB_CPU_ALL */
 
 /*
  * Handler for smp_call_function_single().  The only point of this
@@ -1644,13 +1647,15 @@ static void rcu_cleanup_after_idle(int cpu)
  */
 static void rcu_prepare_for_idle(void)
 {
-#ifndef CONFIG_RCU_NOCB_CPU_ALL
 	bool needwake;
 	struct rcu_data *rdp;
 	struct rcu_dynticks *rdtp = this_cpu_ptr(&rcu_dynticks);
 	struct rcu_node *rnp;
 	struct rcu_state *rsp;
 	int tne;
+
+	if (IS_ENABLED(CONFIG_RCU_NOCB_CPU_ALL))
+		return;
 
 	/* Handle nohz enablement switches conservatively. */
 	tne = READ_ONCE(tick_nohz_active);
@@ -1709,6 +1714,7 @@ static void rcu_prepare_for_idle(void)
 		if (needwake)
 			rcu_gp_kthread_wake(rsp);
 	}
+}
 
 /*
  * Clean up for exit from idle.  Attempt to advance callbacks based on
@@ -1717,8 +1723,8 @@ static void rcu_prepare_for_idle(void)
  */
 static void rcu_cleanup_after_idle(void)
 {
-#ifndef CONFIG_RCU_NOCB_CPU_ALL
-	if (rcu_is_nocb_cpu(smp_processor_id()))
+	if (IS_ENABLED(CONFIG_RCU_NOCB_CPU_ALL) ||
+	    rcu_is_nocb_cpu(smp_processor_id()))
 		return;
 	}
 
@@ -1748,10 +1754,6 @@ static void rcu_cleanup_after_idle(void)
 	if (rcu_cpu_has_callbacks(cpu)) {
 		trace_rcu_prep_idle("More callbacks");
 		invoke_rcu_core();
-	} else {
-		trace_rcu_prep_idle("Callbacks drained");
-	}
-#endif /* #ifndef CONFIG_RCU_NOCB_CPU_ALL */
 }
 
 /*
