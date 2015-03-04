@@ -1567,66 +1567,6 @@ int rcu_needs_cpu(unsigned long *dj)
 }
 
 /*
- * Handler for smp_call_function_single().  The only point of this
- * handler is to wake the CPU up, so the handler does only tracing.
- */
-void rcu_idle_demigrate(void *unused)
-{
-	trace_rcu_prep_idle("Demigrate");
-}
-
-/*
- * Timer handler used to force CPU to start pushing its remaining RCU
- * callbacks in the case where it entered dyntick-idle mode with callbacks
- * pending.  The hander doesn't really need to do anything because the
- * real work is done upon re-entry to idle, or by the next scheduling-clock
- * interrupt should idle not be re-entered.
- *
- * One special case: the timer gets migrated without awakening the CPU
- * on which the timer was scheduled on.  In this case, we must wake up
- * that CPU.  We do so with smp_call_function_single().
- */
-static void rcu_idle_gp_timer_func(unsigned long cpu_in)
-{
-	int cpu = (int)cpu_in;
-
-	trace_rcu_prep_idle("Timer");
-	if (cpu != smp_processor_id())
-		smp_call_function_single(cpu, rcu_idle_demigrate, NULL, 0);
-	else
-		WARN_ON_ONCE(1); /* Getting here can hang the system... */
-}
-
-/*
- * Initialize the timer used to pull CPUs out of dyntick-idle mode.
- */
-static void rcu_prepare_for_idle_init(int cpu)
-{
-	struct rcu_dynticks *rdtp = &per_cpu(rcu_dynticks, cpu);
-
-	rdtp->dyntick_holdoff = jiffies - 1;
-	setup_timer(&rdtp->idle_gp_timer, rcu_idle_gp_timer_func, cpu);
-	rdtp->idle_gp_timer_expires = jiffies - 1;
-	rdtp->idle_first_pass = 1;
-}
-
-/*
- * Clean up for exit from idle.  Because we are exiting from idle, there
- * is no longer any point to ->idle_gp_timer, so cancel it.  This will
- * do nothing if this timer is not active, so just cancel it unconditionally.
- */
-static void rcu_cleanup_after_idle(int cpu)
-{
-#ifndef CONFIG_RCU_NOCB_CPU_ALL
-	struct rcu_dynticks *rdtp = &per_cpu(rcu_dynticks, cpu);
-
-	del_timer(&rdtp->idle_gp_timer);
-	trace_rcu_prep_idle("Cleanup after idle");
-	rdtp->tick_nohz_enabled_snap = ACCESS_ONCE(tick_nohz_active);
-#endif /* #ifndef CONFIG_RCU_NOCB_CPU_ALL */
-}
-
-/*
  * Check to see if any RCU-related work can be done by the current CPU,
  * and if so, schedule a softirq to get it done.  This function is part
  * of the RCU implementation; it is -not- an exported member of the RCU API.
