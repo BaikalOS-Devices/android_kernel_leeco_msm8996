@@ -676,6 +676,7 @@ config RCU_KTHREAD_PRIO
 	range 0 99 if !RCU_BOOST
 	default 1 if RCU_BOOST
 	default 0 if !RCU_BOOST
+	depends on RCU_EXPERT
 	help
 	  This option specifies the real-time priority to which long-term
 	  preempted RCU readers are to be boosted.  If you are working
