@@ -3496,7 +3496,7 @@ static int rcu_pending(void)
  * by the current CPU, even if none need be done immediately, returning
  * 1 if so.
  */
-static int __maybe_unused rcu_cpu_has_callbacks(bool *all_lazy)
+static bool __maybe_unused rcu_cpu_has_callbacks(bool *all_lazy)
 {
 	struct rcu_state *rsp;
 
