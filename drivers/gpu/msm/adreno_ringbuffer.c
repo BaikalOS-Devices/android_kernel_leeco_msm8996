@@ -860,10 +860,12 @@ static int set_user_profiling(struct adreno_device *adreno_dev,
 
 /* adreno_rindbuffer_submitcmd - submit userspace IBs to the GPU */
 int adreno_ringbuffer_submitcmd(struct adreno_device *adreno_dev,
-		struct kgsl_drawobj *drawobj, struct adreno_submit_time *time)
+		struct kgsl_drawobj_cmd *cmdobj,
+		struct adreno_submit_time *time)
 {
 	struct kgsl_device *device = KGSL_DEVICE(adreno_dev);
 	struct adreno_gpudev *gpudev = ADRENO_GPU_DEVICE(adreno_dev);
+	struct kgsl_drawobj *drawobj = DRAWOBJ(cmdobj);
 	struct kgsl_memobj_node *ib;
 	unsigned int numibs = 0;
 	unsigned int *link;
@@ -872,8 +874,8 @@ int adreno_ringbuffer_submitcmd(struct adreno_device *adreno_dev,
 	struct kgsl_context *context;
 	struct adreno_context *drawctxt;
 	bool use_preamble = true;
-	bool drawobj_user_profiling = false;
-	bool drawobj_kernel_profiling = false;
+	bool user_profiling = false;
+	bool kernel_profiling = false;
 	int flags = KGSL_CMD_FLAGS_NONE;
 	int ret;
 	struct adreno_ringbuffer *rb;
@@ -881,16 +883,16 @@ int adreno_ringbuffer_submitcmd(struct adreno_device *adreno_dev,
 	unsigned int dwords = 0;
 	struct adreno_submit_time local;
 
-	struct kgsl_mem_entry *entry = drawobj->profiling_buf_entry;
+	struct kgsl_mem_entry *entry = cmdobj->profiling_buf_entry;
 	if (entry)
 		profile_buffer = kgsl_gpuaddr_to_vaddr(&entry->memdesc,
-					drawobj->profiling_buffer_gpuaddr);
+					cmdobj->profiling_buffer_gpuaddr);
 
 	context = drawobj->context;
 	drawctxt = ADRENO_CONTEXT(context);
 
 	/* Get the total IBs in the list */
-	list_for_each_entry(ib, &drawobj->cmdlist, node)
+	list_for_each_entry(ib, &cmdobj->cmdlist, node)
 		numibs++;
 
 	rb = drawctxt->rb;
@@ -907,11 +909,11 @@ int adreno_ringbuffer_submitcmd(struct adreno_device *adreno_dev,
 	 * c) force preamble for commandbatch
 	 */
 	if (test_bit(ADRENO_CONTEXT_SKIP_CMD, &drawctxt->base.priv) &&
-		(!test_bit(DRAWOBJ_FLAG_SKIP, &drawobj->priv))) {
+		(!test_bit(CMDOBJ_SKIP, &cmdobj->priv))) {
 
-		set_bit(KGSL_FT_SKIPCMD, &drawobj->fault_recovery);
-		drawobj->fault_policy = drawctxt->fault_policy;
-		set_bit(DRAWOBJ_FLAG_FORCE_PREAMBLE, &drawobj->priv);
+		set_bit(KGSL_FT_SKIPCMD, &cmdobj->fault_recovery);
+		cmdobj->fault_policy = drawctxt->fault_policy;
+		set_bit(CMDOBJ_FORCE_PREAMBLE, &cmdobj->priv);
 
 		/* if context is detached print fault recovery */
 		adreno_fault_skipcmd_detached(adreno_dev, drawctxt, drawobj);
@@ -926,7 +928,7 @@ int adreno_ringbuffer_submitcmd(struct adreno_device *adreno_dev,
 	if a context switch hasn't occured */
 
 	if ((drawctxt->base.flags & KGSL_CONTEXT_PREAMBLE) &&
-		!test_bit(DRAWOBJ_FLAG_FORCE_PREAMBLE, &drawobj->priv) &&
+		!test_bit(CMDOBJ_FORCE_PREAMBLE, &cmdobj->priv) &&
 		(rb->drawctxt_active == drawctxt))
 		use_preamble = false;
 
@@ -936,7 +938,7 @@ int adreno_ringbuffer_submitcmd(struct adreno_device *adreno_dev,
 	 * the accounting sane. Set start_index and numibs to 0 to just
 	 * generate the start and end markers and skip everything else
 	 */
-	if (test_bit(DRAWOBJ_FLAG_SKIP, &drawobj->priv)) {
+	if (test_bit(CMDOBJ_SKIP, &cmdobj->priv)) {
 		use_preamble = false;
 		numibs = 0;
 	}
@@ -955,7 +957,7 @@ int adreno_ringbuffer_submitcmd(struct adreno_device *adreno_dev,
 
 	if (drawobj->flags & KGSL_DRAWOBJ_PROFILING &&
 		!adreno_is_a3xx(adreno_dev) && profile_buffer) {
-		drawobj_user_profiling = true;
+		user_profiling = true;
 		dwords += 6;
 
 		/*
@@ -975,8 +977,8 @@ int adreno_ringbuffer_submitcmd(struct adreno_device *adreno_dev,
 			time = &local;
 	}
 
-	if (test_bit(DRAWOBJ_FLAG_PROFILE, &drawobj->priv)) {
-		drawobj_kernel_profiling = true;
+	if (test_bit(CMDOBJ_PROFILE, &cmdobj->priv)) {
+		kernel_profiling = true;
 		dwords += 6;
 		if (adreno_is_a5xx(adreno_dev))
 			dwords += 2;
@@ -1001,26 +1003,26 @@ int adreno_ringbuffer_submitcmd(struct adreno_device *adreno_dev,
 	*cmds++ = cp_packet(adreno_dev, CP_NOP, 1);
 	*cmds++ = KGSL_START_OF_IB_IDENTIFIER;
 
-	if (drawobj_kernel_profiling) {
+	if (kernel_profiling) {
 		cmds += _get_alwayson_counter(adreno_dev, cmds,
 			adreno_dev->profile_buffer.gpuaddr +
-			ADRENO_DRAWOBJ_PROFILE_OFFSET(drawobj->profile_index,
+			ADRENO_DRAWOBJ_PROFILE_OFFSET(cmdobj->profile_index,
 				started));
 	}
 
 	/*
-	 * Add cmds to read the GPU ticks at the start of the drawobj and
-	 * write it into the appropriate drawobj profiling buffer offset
+	 * Add cmds to read the GPU ticks at the start of command obj and
+	 * write it into the appropriate command obj profiling buffer offset
 	 */
-	if (drawobj_user_profiling) {
+	if (user_profiling) {
 		cmds += _get_alwayson_counter(adreno_dev, cmds,
-			drawobj->profiling_buffer_gpuaddr +
+			cmdobj->profiling_buffer_gpuaddr +
 			offsetof(struct kgsl_drawobj_profiling_buffer,
 			gpu_ticks_submitted));
 	}
 
 	if (numibs) {
-		list_for_each_entry(ib, &drawobj->cmdlist, node) {
+		list_for_each_entry(ib, &cmdobj->cmdlist, node) {
 			/*
 			 * Skip 0 sized IBs - these are presumed to have been
 			 * removed from consideration by the FT policy
@@ -1044,20 +1046,20 @@ int adreno_ringbuffer_submitcmd(struct adreno_device *adreno_dev,
 				adreno_is_preemption_enabled(adreno_dev))
 		cmds += gpudev->preemption_yield_enable(cmds);
 
-	if (drawobj_kernel_profiling) {
+	if (kernel_profiling) {
 		cmds += _get_alwayson_counter(adreno_dev, cmds,
 			adreno_dev->profile_buffer.gpuaddr +
-			ADRENO_DRAWOBJ_PROFILE_OFFSET(drawobj->profile_index,
+			ADRENO_DRAWOBJ_PROFILE_OFFSET(cmdobj->profile_index,
 				retired));
 	}
 
 	/*
-	 * Add cmds to read the GPU ticks at the end of the drawobj and
-	 * write it into the appropriate drawobj profiling buffer offset
+	 * Add cmds to read the GPU ticks at the end of command obj and
+	 * write it into the appropriate command obj profiling buffer offset
 	 */
-	if (drawobj_user_profiling) {
+	if (user_profiling) {
 		cmds += _get_alwayson_counter(adreno_dev, cmds,
-			drawobj->profiling_buffer_gpuaddr +
+			cmdobj->profiling_buffer_gpuaddr +
 			offsetof(struct kgsl_drawobj_profiling_buffer,
 			gpu_ticks_retired));
 	}
@@ -1084,7 +1086,7 @@ int adreno_ringbuffer_submitcmd(struct adreno_device *adreno_dev,
 		goto done;
 	}
 
-	if (test_bit(DRAWOBJ_FLAG_WFI, &drawobj->priv))
+	if (test_bit(CMDOBJ_WFI, &cmdobj->priv))
 		flags = KGSL_CMD_FLAGS_WFI;
 
 	/*
@@ -1100,7 +1102,7 @@ int adreno_ringbuffer_submitcmd(struct adreno_device *adreno_dev,
 	adreno_ringbuffer_set_constraint(device, drawobj);
 
 	/* CFF stuff executed only if CFF is enabled */
-	kgsl_cffdump_capture_ib_desc(device, context, drawobj);
+	kgsl_cffdump_capture_ib_desc(device, context, cmdobj);
 
 
 	ret = adreno_ringbuffer_addcmds(rb, flags,
@@ -1109,10 +1111,10 @@ int adreno_ringbuffer_submitcmd(struct adreno_device *adreno_dev,
 
 	if (!ret) {
 		set_bit(KGSL_CONTEXT_PRIV_SUBMITTED, &context->priv);
-		drawobj->global_ts = drawctxt->internal_timestamp;
+		cmdobj->global_ts = drawctxt->internal_timestamp;
 
 		/* Put the timevalues in the profiling buffer */
-		if (drawobj_user_profiling) {
+		if (user_profiling) {
 			/*
 			* Return kernel clock time to the the client
 			* if requested
@@ -1142,8 +1144,7 @@ done:
 		kgsl_memdesc_unmap(&entry->memdesc);
 
 
-	trace_kgsl_issueibcmds(device, context->id, drawobj,
-			numibs, drawobj->timestamp,
+	trace_kgsl_issueibcmds(device, context->id, numibs, drawobj->timestamp,
 			drawobj->flags, ret, drawctxt->type);
 
 	if (link != link_onstack)
