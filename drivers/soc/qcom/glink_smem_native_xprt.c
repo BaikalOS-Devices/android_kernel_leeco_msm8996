@@ -802,7 +802,7 @@ static bool get_rx_fifo(struct edge_info *einfo)
 							einfo->remote_proc_id,
 							SMEM_ITEM_CACHED_FLAG);
 		if (!einfo->rx_fifo)
-			einfo->rx_fifo = (void __iomem *)smem_get_entry(
+			einfo->rx_fifo = smem_get_entry(
 						SMEM_GLINK_NATIVE_XPRT_FIFO_1,
 							&einfo->rx_fifo_size,
 							einfo->remote_proc_id,
