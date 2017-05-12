@@ -2705,6 +2705,10 @@ void *glink_open(const struct glink_open_config *cfg)
 	ctx->local_xprt_req = best_id;
 	ctx->no_migrate = cfg->transport &&
 				!(cfg->options & GLINK_OPT_INITIAL_XPORT);
+<<<<<<< HEAD
+=======
+	ctx->local_open_state = GLINK_CHANNEL_OPENING;
+>>>>>>> bb73294fb71f... soc: qcom: glink: Move ctx initialization of xprt ptr
 	GLINK_INFO_PERF_CH(ctx,
 		"%s: local:GLINK_CHANNEL_CLOSED->GLINK_CHANNEL_OPENING\n",
 		__func__);
