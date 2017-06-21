@@ -314,7 +314,6 @@ struct channel_ctx {
 
 	uint32_t rt_vote_on;
 	uint32_t rt_vote_off;
-	uint32_t magic_number;
 };
 
 static struct glink_core_if core_impl;
@@ -3117,16 +3116,20 @@ static int glink_tx_common(void *handle, void *pkt_priv,
 		xprt_schedule_tx(ctx->transport_ptr, ctx, tx_info);
 
 	rwref_read_put(&ctx->ch_state_lhb2);
-	glink_put_ch_ctx(ctx, false);
+	glink_put_ch_ctx(ctx);
 	return ret;
 
 glink_tx_common_err:
 	rwref_read_put(&ctx->ch_state_lhb2);
 glink_tx_common_err_2:
 <<<<<<< HEAD
+<<<<<<< HEAD
 	glink_put_ch_ctx(ctx);
 =======
 	glink_put_ch_ctx(ctx, false);
+=======
+	glink_put_ch_ctx(ctx);
+>>>>>>> dcff893174aa... soc: qcom: glink: Remove magic number logic
 	kfree(tx_info);
 >>>>>>> e41b2890f89a... soc: qcom: glink: Move tx_info allocation in beginning
 	return ret;
@@ -3660,13 +3663,13 @@ int glink_start_rx_rt(void *handle)
 	if (!ch_is_fully_opened(ctx)) {
 		GLINK_ERR_CH(ctx, "%s: Channel is not fully opened\n",
 			__func__);
-		glink_put_ch_ctx(ctx, false);
+		glink_put_ch_ctx(ctx);
 		return -EBUSY;
 	}
 	ret = ctx->transport_ptr->ops->rx_rt_vote(ctx->transport_ptr->ops);
 	ctx->rt_vote_on++;
 	GLINK_INFO_CH(ctx, "%s: Voting RX Realtime Thread %d", __func__, ret);
-	glink_put_ch_ctx(ctx, false);
+	glink_put_ch_ctx(ctx);
 	return ret;
 }
 
@@ -3687,13 +3690,13 @@ int glink_end_rx_rt(void *handle)
 	if (!ch_is_fully_opened(ctx)) {
 		GLINK_ERR_CH(ctx, "%s: Channel is not fully opened\n",
 			__func__);
-		glink_put_ch_ctx(ctx, false);
+		glink_put_ch_ctx(ctx);
 		return -EBUSY;
 	}
 	ret = ctx->transport_ptr->ops->rx_rt_unvote(ctx->transport_ptr->ops);
 	ctx->rt_vote_off++;
 	GLINK_INFO_CH(ctx, "%s: Unvoting RX Realtime Thread %d", __func__, ret);
-	glink_put_ch_ctx(ctx, false);
+	glink_put_ch_ctx(ctx);
 	return ret;
 }
 
