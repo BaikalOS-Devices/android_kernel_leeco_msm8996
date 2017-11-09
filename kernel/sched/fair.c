@@ -6461,6 +6461,11 @@ static int wake_affine(struct sched_domain *sd, struct task_struct *p, int sync)
 	return 1;
 }
 
+static unsigned long capacity_spare_wake(int cpu, struct task_struct *p)
+{
+	return max_t(long, capacity_of(cpu) - cpu_util_wake(cpu, p), 0);
+}
+
 /*
  * find_idlest_group finds and returns the least busy CPU group within the
  * domain.
