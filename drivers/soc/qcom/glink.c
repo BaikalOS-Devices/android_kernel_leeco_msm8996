@@ -3045,9 +3045,8 @@ static int glink_tx_common(void *handle, void *pkt_priv,
 					&ctx->int_req_ack_complete,
 					ctx->rx_intent_req_timeout_jiffies)) {
 				GLINK_ERR(
-					"%s: %s: %s %zu not granted for lcid\n",
-					glink_name, __func__,
-					"Intent request ack with size:", size);
+					"%s: Intent request ack with size: %zu not granted for lcid\n",
+					__func__, size);
 				ret = -ETIMEDOUT;
 				goto glink_tx_common_err_2;
 			}
@@ -3064,9 +3063,9 @@ static int glink_tx_common(void *handle, void *pkt_priv,
 			if (!wait_for_completion_timeout(
 					&ctx->int_req_complete,
 					ctx->rx_intent_req_timeout_jiffies)) {
-				GLINK_ERR("%s: %s: %s %zu %s\n", glink_name,
-					 __func__, "Intent request with size: ",
-					size, "not granted for lcid");
+				GLINK_ERR(
+					"%s: Intent request with size: %zu not granted for lcid\n",
+					__func__, size);
 				ret = -ETIMEDOUT;
 				goto glink_tx_common_err_2;
 			}
@@ -3119,16 +3118,8 @@ static int glink_tx_common(void *handle, void *pkt_priv,
 glink_tx_common_err:
 	rwref_read_put(&ctx->ch_state_lhb2);
 glink_tx_common_err_2:
-<<<<<<< HEAD
-<<<<<<< HEAD
 	glink_put_ch_ctx(ctx);
-=======
-	glink_put_ch_ctx(ctx, false);
-=======
-	glink_put_ch_ctx(ctx);
->>>>>>> dcff893174aa... soc: qcom: glink: Remove magic number logic
 	kfree(tx_info);
->>>>>>> e41b2890f89a... soc: qcom: glink: Move tx_info allocation in beginning
 	return ret;
 }
 
