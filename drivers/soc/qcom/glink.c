@@ -1938,7 +1938,6 @@ check_ctx:
 			spin_unlock_irqrestore(&xprt_ctx->xprt_ctx_lock_lhb1,
 					flags);
 			kfree(ctx);
-			rwref_get(&entry->ch_state_lhb2);
 			rwref_write_put(&xprt_ctx->xprt_state_lhb0);
 			return entry;
 		}
@@ -1969,6 +1968,8 @@ check_ctx:
 
 		ctx->transport_ptr = xprt_ctx;
 		rwref_get(&ctx->ch_state_lhb2);
+		if (local)
+			ctx->local_open_state = GLINK_CHANNEL_OPENING;
 		list_add_tail(&ctx->port_list_node, &xprt_ctx->channels);
 
 		GLINK_INFO_PERF_CH_XPRT(ctx, xprt_ctx,
@@ -2661,16 +2662,6 @@ void *glink_open(const struct glink_open_config *cfg)
 		return ERR_PTR(-ENOMEM);
 	}
 
-	/* port already exists */
-	if (ctx->local_open_state != GLINK_CHANNEL_CLOSED) {
-		/* not ready to be re-opened */
-		GLINK_INFO_CH_XPRT(ctx, transport_ptr,
-		"%s: Channel not ready to be re-opened. State: %u\n",
-		__func__, ctx->local_open_state);
-		rwref_put(&ctx->ch_state_lhb2);
-		return ERR_PTR(-EBUSY);
-	}
-
 	/* initialize port structure */
 	ctx->user_priv = cfg->priv;
 	ctx->rx_intent_req_timeout_jiffies =
@@ -2701,7 +2692,6 @@ void *glink_open(const struct glink_open_config *cfg)
 	ctx->local_xprt_req = best_id;
 	ctx->no_migrate = cfg->transport &&
 				!(cfg->options & GLINK_OPT_INITIAL_XPORT);
-	ctx->local_open_state = GLINK_CHANNEL_OPENING;
 	GLINK_INFO_PERF_CH(ctx,
 		"%s: local:GLINK_CHANNEL_CLOSED->GLINK_CHANNEL_OPENING\n",
 		__func__);
