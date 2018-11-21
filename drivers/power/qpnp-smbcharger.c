@@ -297,7 +297,8 @@ struct smbchg_chip {
 	struct delayed_work		letv_pd_set_vol_cur_work;
 	struct delayed_work		pd_charger_init_work;
 	struct delayed_work		weak_charger_timeout_work;
-	struct delayed_work	    	first_detect_float_work;
+	struct delayed_work	    first_detect_float_work;
+
 #endif
 
 #ifdef CONFIG_PRODUCT_LE_ZL1
