@@ -1221,15 +1221,31 @@ static int cyccg_sync_ap_status(struct cyccg *cyccg,
 //letv_pd e
 			break;
 		case CCG_STATUS_ATTACHED_DEV_TYPE_DEBUG_ACCESSORY:
-			cyccg_dbg("%s: attached_dev_type: DEBUG_ACCESSORY.\n",
-				  __func__);
-			/* TODO: if supports it. */
-			pr_info("cyccg switch uart_sw to uart mode\n");
-			gpio_set_value(cyccg_pdata->gpio_uart_sw, 0);
+			if(!cclogic_get_smbcharge_init_done())
+			{
+				cyccg_dbg("%s: smbcharger not ready.\n", __func__);
+				break;
+			}
+			cyccg_dbg("%s: turn VBUS on.\n", __func__);
+			cyccg_dbg("%s: set to OTG host.\n", __func__);
+			cclogic_set_vbus(1);
+			/*
+			 * TODO(third-party):
+			 *   Notify AP to set as otg host and turn VBUS on.
+			 *   If AP has set otg host mode and VBUS is on,
+			 *   do nothing.
+			 */
+			pr_info("cyccg switch to SBU1/SBU2\n");
+			gpio_set_value(cyccg_pdata->gpio_uart_sw, 1);
 			gpio_set_value(cyccg_pdata->gpio_ad_sel, 0);
-
-			cyccg_pdata->mode = DEBUG_MODE;
-			cclogic_updata_port_state(4);
+			pr_info("cyccg set usb to host mode\n");
+			pi5usb_set_msm_usb_host_mode(true);
+			cyccg_pdata->mode = DFP_MODE;//mobile is DFP, sink device is UFP
+			cclogic_updata_port_state(2);
+//letv_pd s
+			letv_pd_set_usb_mode(LETV_USB_DFP_MODE);
+//letv_pd e
+			typec_connect_state = true;
 			break;
 		case CCG_STATUS_ATTACHED_DEV_TYPE_AUDIO_ACCESSORY:
 			cyccg_dbg("%s: attached_dev_type: AUDIO_ACCESSORY.\n",
