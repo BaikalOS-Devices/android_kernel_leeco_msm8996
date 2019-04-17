@@ -21,15 +21,6 @@
 
 #include "internals.h"
 
-struct irq_desc_list {
-	struct list_head list;
-	struct irq_desc *desc;
-} perf_crit_irqs = {
-	.list = LIST_HEAD_INIT(perf_crit_irqs.list)
-};
-
-static DEFINE_RAW_SPINLOCK(perf_irqs_lock);
-
 #ifdef CONFIG_IRQ_FORCED_THREADING
 __read_mostly bool force_irqthreads;
 
@@ -990,114 +981,6 @@ static void irq_release_resources(struct irq_desc *desc)
 		c->irq_release_resources(d);
 }
 
-static int
-setup_irq_thread(struct irqaction *new, unsigned int irq, bool secondary)
-{
-	struct task_struct *t;
-	struct sched_param param = {
-		.sched_priority = MAX_USER_RT_PRIO/2,
-	};
-
-	if (!secondary) {
-		t = kthread_create(irq_thread, new, "irq/%d-%s", irq,
-				   new->name);
-	} else {
-		t = kthread_create(irq_thread, new, "irq/%d-s-%s", irq,
-				   new->name);
-		param.sched_priority -= 1;
-	}
-
-	if (IS_ERR(t))
-		return PTR_ERR(t);
-
-	sched_setscheduler_nocheck(t, SCHED_FIFO, &param);
-
-	/*
-	 * We keep the reference to the task struct even if
-	 * the thread dies to avoid that the interrupt code
-	 * references an already freed task_struct.
-	 */
-	get_task_struct(t);
-	new->thread = t;
-	/*
-	 * Tell the thread to set its affinity. This is
-	 * important for shared interrupt handlers as we do
-	 * not invoke setup_affinity() for the secondary
-	 * handlers as everything is already set up. Even for
-	 * interrupts marked with IRQF_NO_BALANCE this is
-	 * correct as we want the thread to move to the cpu(s)
-	 * on which the requesting code placed the interrupt.
-	 */
-	set_bit(IRQTF_AFFINITY, &new->thread_flags);
-	return 0;
-}
-
-static void add_desc_to_perf_list(struct irq_desc *desc)
-{
-	struct irq_desc_list *item;
-	unsigned long flags;
-
-	item = kmalloc(sizeof(*item), GFP_ATOMIC);
-	if (WARN_ON(!item))
-		return;
-
-	item->desc = desc;
-
-	raw_spin_lock_irqsave(&perf_irqs_lock, flags);
-	list_add(&item->list, &perf_crit_irqs.list);
-	raw_spin_unlock_irqrestore(&perf_irqs_lock, flags);
-}
-
-static void affine_one_perf_thread(struct task_struct *t)
-{
-	t->flags |= PF_PERF_CRITICAL;
-	set_cpus_allowed_ptr(t, cpu_perf_mask);
-}
-
-static void unaffine_one_perf_thread(struct task_struct *t)
-{
-	t->flags &= ~PF_PERF_CRITICAL;
-	set_cpus_allowed_ptr(t, cpu_all_mask);
-}
-
-void unaffine_perf_irqs(void)
-{
-	struct irq_desc_list *data;
-	unsigned long outer_flags;
-
-	raw_spin_lock_irqsave(&perf_irqs_lock, outer_flags);
-	list_for_each_entry(data, &perf_crit_irqs.list, list) {
-		struct irq_desc *desc = data->desc;
-		unsigned long flags;
-
-		raw_spin_lock_irqsave(&desc->lock, flags);
-		irq_set_affinity_locked(&desc->irq_data, cpu_all_mask, true);
-		if (desc->action->thread)
-			unaffine_one_perf_thread(desc->action->thread);
-		raw_spin_unlock_irqrestore(&desc->lock, flags);
-	}
-	raw_spin_unlock_irqrestore(&perf_irqs_lock, outer_flags);
-}
-
-void reaffine_perf_irqs(void)
-{
-	struct irq_desc_list *data;
-	unsigned long outer_flags;
-
-	raw_spin_lock_irqsave(&perf_irqs_lock, outer_flags);
-	list_for_each_entry(data, &perf_crit_irqs.list, list) {
-		struct irq_desc *desc = data->desc;
-		unsigned long flags;
-
-		raw_spin_lock_irqsave(&desc->lock, flags);
-		irq_set_affinity_locked(&desc->irq_data, cpu_perf_mask, true);
-		if (desc->action->thread)
-			affine_one_perf_thread(desc->action->thread);
-		raw_spin_unlock_irqrestore(&desc->lock, flags);
-	}
-	raw_spin_unlock_irqrestore(&perf_irqs_lock, outer_flags);
-}
-
 /*
  * Internal function to register an irqaction - typically used to
  * allocate special interrupts that are part of the architecture.
@@ -1176,8 +1059,6 @@ __setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction *new)
 		 * on which the requesting code placed the interrupt.
 		 */
 		set_bit(IRQTF_AFFINITY, &new->thread_flags);
-		if (new->flags & IRQF_PERF_CRITICAL)
-			affine_one_perf_thread(new->thread);
 	}
 
 	if (!alloc_cpumask_var(&mask, GFP_KERNEL)) {
@@ -1340,14 +1221,7 @@ __setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction *new)
 		}
 
 		/* Set default affinity mask once everything is setup */
-		if (new->flags & IRQF_PERF_CRITICAL) {
-			add_desc_to_perf_list(desc);
-			irqd_set(&desc->irq_data, IRQD_AFFINITY_MANAGED);
-			irq_set_affinity_locked(&desc->irq_data,
-				cpu_perf_mask, true);
-		} else {
-			setup_affinity(irq, desc, mask);
-		}
+		setup_affinity(irq, desc, mask);
 
 	} else if (new->flags & IRQF_TRIGGER_MASK) {
 		unsigned int nmsk = new->flags & IRQF_TRIGGER_MASK;
