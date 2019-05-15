@@ -4614,7 +4614,7 @@ static int dwc3_msm_pm_prepare(struct device *dev)
 	struct xhci_hcd	*xhci;
 	bool stop_ss_host = false;
 
-	dev_err(dev, "dwc3-msm PM prepare,lpm:%u\n", atomic_read(&dwc->in_lpm));
+	dev_dbg(dev, "dwc3-msm PM prepare,lpm:%u\n", atomic_read(&dwc->in_lpm));
 
 	if (!mdwc->in_host_mode || !mdwc->no_wakeup_src_in_hostmode)
 		return 0;
