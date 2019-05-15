@@ -43,6 +43,7 @@
 #include <linux/uaccess.h>
 #include <linux/version.h>
 #include <linux/vmalloc.h>
+#include <linux/cpu_input_boost.h>
 #include <linux/sync.h>
 #include <linux/sw_sync.h>
 #include <linux/file.h>

@@ -774,7 +774,7 @@ static void __ref do_hotplug(struct cpu_data *f)
 
 			pr_debug("Trying to Offline CPU%u\n", c->cpu);
 			if (core_ctl_offline_core(c->cpu))
-				pr_err("Unable to Offline CPU%u\n", c->cpu);
+				pr_debug("Unable to Offline CPU%u\n", c->cpu);
 		}
 
 		/*
@@ -796,7 +796,7 @@ static void __ref do_hotplug(struct cpu_data *f)
 
 			pr_debug("Trying to Offline CPU%u\n", c->cpu);
 			if (core_ctl_offline_core(c->cpu))
-				pr_err("Unable to Offline CPU%u\n", c->cpu);
+				pr_debug("Unable to Offline CPU%u\n", c->cpu);
 		}
 	} else if (f->online_cpus < need) {
 		list_for_each_entry_safe(c, tmp, &f->lru, sib) {

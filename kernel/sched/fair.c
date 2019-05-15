@@ -9262,6 +9262,12 @@ static int idle_balance(struct rq *this_rq)
 	int pulled_task = 0;
 	u64 curr_cost = 0;
 
+	if( !cpu_online(this_cpu))
+		return 0;
+
+	if (!cpu_active(this_cpu))
+		return 0;
+
 	idle_enter_fair(this_rq);
 
 	/*
