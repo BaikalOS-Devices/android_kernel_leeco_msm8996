@@ -772,6 +772,11 @@ static ssize_t pm_qos_power_read(struct file *filp, char __user *buf,
 static ssize_t pm_qos_power_write(struct file *filp, const char __user *buf,
 		size_t count, loff_t *f_pos)
 {
+
+	return 0;
+	/* Don't let userspace impose restrictions on CPU idle levels */
+
+/*
 	s32 value;
 	struct pm_qos_request *req;
 
@@ -790,6 +795,7 @@ static ssize_t pm_qos_power_write(struct file *filp, const char __user *buf,
 	pm_qos_update_request(req, value);
 
 	return count;
+	*/
 }
 
 
