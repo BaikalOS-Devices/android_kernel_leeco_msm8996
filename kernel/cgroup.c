@@ -60,6 +60,10 @@
 
 #include <linux/atomic.h>
 
+#include <linux/binfmts.h>
+#include <linux/cpu_input_boost.h>
+#include <linux/devfreq_boost.h>
+
 /*
  * pidlists linger the following amount before being destroyed.  The goal
  * is avoiding frequent destruction in the middle of consecutive read calls
@@ -2408,6 +2412,15 @@ retry_find_task:
 
 	get_task_struct(tsk);
 	rcu_read_unlock();
+
+	
+	/* This covers boosting for app launches and app transitions */
+	if (!ret && !threadgroup &&
+  		!strcmp(of->kn->parent->name, "top-app") &&
+		is_zygote_pid(tsk->parent->pid)) {
+		cpu_input_boost_kick_max(1000);
+		devfreq_boost_kick_max(DEVFREQ_MSM_CPUBW, 500);
+	}
 
 	threadgroup_lock(tsk);
 	if (threadgroup) {
