@@ -17,6 +17,9 @@
 #include <linux/backing-dev.h>
 #include "internal.h"
 
+#include <linux/devfreq_boost.h>
+
+
 #define VALID_FLAGS (SYNC_FILE_RANGE_WAIT_BEFORE|SYNC_FILE_RANGE_WRITE| \
 			SYNC_FILE_RANGE_WAIT_AFTER)
 
@@ -63,6 +66,7 @@ int sync_filesystem(struct super_block *sb)
 	ret = __sync_filesystem(sb, 0);
 	if (ret < 0)
 		return ret;
+	devfreq_boost_kick_max_all(100);
 	return __sync_filesystem(sb, 1);
 }
 EXPORT_SYMBOL(sync_filesystem);
@@ -103,6 +107,8 @@ SYSCALL_DEFINE0(sync)
 {
 	int nowait = 0, wait = 1;
 
+	devfreq_boost_kick_max_all(100);
+
 	wakeup_flusher_threads(0, WB_REASON_SYNC);
 	iterate_supers(sync_inodes_one_sb, NULL);
 	iterate_supers(sync_fs_one_sb, &nowait);
@@ -136,6 +142,8 @@ void emergency_sync(void)
 {
 	struct work_struct *work;
 
+	devfreq_boost_kick_max_all(500);
+
 	work = kmalloc(sizeof(*work), GFP_ATOMIC);
 	if (work) {
 		INIT_WORK(work, do_sync_work);
@@ -155,6 +163,8 @@ SYSCALL_DEFINE1(syncfs, int, fd)
 	if (!f.file)
 		return -EBADF;
 	sb = f.file->f_dentry->d_sb;
+
+	devfreq_boost_kick_max_all(100);
 
 	down_read(&sb->s_umount);
 	ret = sync_filesystem(sb);
@@ -187,6 +197,9 @@ int vfs_fsync_range(struct file *file, loff_t start, loff_t end, int datasync)
 		spin_unlock(&inode->i_lock);
 		mark_inode_dirty_sync(inode);
 	}
+
+	devfreq_boost_kick_max_all(100);
+
 	return file->f_op->fsync(file, start, end, datasync);
 }
 EXPORT_SYMBOL(vfs_fsync_range);
@@ -335,6 +348,8 @@ SYSCALL_DEFINE4(sync_file_range, int, fd, loff_t, offset, loff_t, nbytes,
 		ret = -EINVAL;
 		goto out_put;
 	}
+
+	devfreq_boost_kick_max_all(100);
 
 	ret = 0;
 	if (flags & SYNC_FILE_RANGE_WAIT_BEFORE) {
