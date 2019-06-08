@@ -621,9 +621,8 @@ static ssize_t store_##file_name					\
 		return -EINVAL;						\
 									\
 	cpufreq_verify_within_cpu_limits(&new_policy);			\
-	if (new_policy.min > new_policy.user_policy.max			\
-	    || new_policy.max < new_policy.user_policy.min)		\
-		return -EINVAL;						\
+	if (new_policy.min > new_policy.user_policy.max) new_policy.max = new_policy.min; \
+	if (new_policy.max < new_policy.user_policy.min) new_policy.min = new_policy.max; \
 									\
 	policy->user_policy.object = new_policy.object;			\
 									\
@@ -2293,7 +2292,7 @@ static int cpufreq_set_policy(struct cpufreq_policy *policy,
 	struct cpufreq_governor *old_gov;
 	int ret;
 
-	pr_debug("setting new policy for CPU %u: %u - %u kHz\n",
+	pr_err("setting new policy for CPU %u: %u - %u kHz\n",
 		 new_policy->cpu, new_policy->min, new_policy->max);
 
 	memcpy(&new_policy->cpuinfo, &policy->cpuinfo, sizeof(policy->cpuinfo));
