@@ -1178,6 +1178,10 @@
 		vccq-max-microamp = <450000>;
 		vccq2-max-microamp = <450000>;
 
+		rpm-level = <3>;
+		spm-level = <3>;
+
+
 		clock-names =
 			"core_clk_src",
 			"core_clk",
