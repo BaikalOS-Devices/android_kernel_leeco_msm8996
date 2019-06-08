@@ -2961,7 +2961,8 @@ rebalance:
 
 	/* Boost when memory is low so allocation latency doesn't get too bad */
 	cpu_input_boost_kick_max(100);
-	devfreq_boost_kick_max(DEVFREQ_MSM_CPUBW, 100);
+	//devfreq_boost_kick_max(DEVFREQ_MSM_CPUBW, 100);
+	devfreq_boost_kick_max_all(100);
 
 	/* Check if we should retry the allocation */
 	pages_reclaimed += did_some_progress;

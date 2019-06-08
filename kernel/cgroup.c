@@ -2419,7 +2419,8 @@ retry_find_task:
   		!strcmp(of->kn->parent->name, "top-app") &&
 		is_zygote_pid(tsk->parent->pid)) {
 		cpu_input_boost_kick_max(1000);
-		devfreq_boost_kick_max(DEVFREQ_MSM_CPUBW, 500);
+		//devfreq_boost_kick_max(DEVFREQ_MSM_CPUBW, 500);
+		devfreq_boost_kick_max_all(500);
 	}
 
 	threadgroup_lock(tsk);
