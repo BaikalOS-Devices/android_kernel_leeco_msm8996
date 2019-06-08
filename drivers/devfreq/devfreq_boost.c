@@ -17,6 +17,17 @@
 #include <linux/fb.h>
 #include <linux/input.h>
 
+#include <linux/module.h>
+#include <linux/moduleparam.h>
+
+
+static bool boost_all=1;
+module_param(boost_all, bool, 0640);
+
+static bool boost_enabled=1;
+module_param(boost_enabled, bool, 0640);
+
+
 struct df_boost_drv {
 	struct boost_dev devices[DEVFREQ_MAX];
 	struct notifier_block fb_notif;
@@ -27,6 +38,8 @@ static struct df_boost_drv *df_boost_drv_g __read_mostly;
 static void __devfreq_boost_kick(struct boost_dev *b)
 {
 	unsigned long flags;
+
+	if(!boost_enabled) return;
 
 	spin_lock_irqsave(&b->lock, flags);
 	if (!b->df || b->disable) {
@@ -52,6 +65,8 @@ static void __devfreq_boost_kick_max(struct boost_dev *b,
 	unsigned int duration_ms)
 {
 	unsigned long flags, new_expires;
+
+	if(!boost_enabled) return;
 
 	spin_lock_irqsave(&b->lock, flags);
 	if (!b->df || b->disable) {
@@ -79,6 +94,24 @@ void devfreq_boost_kick_max(enum df_device device, unsigned int duration_ms)
 		return;
 
 	__devfreq_boost_kick_max(d->devices + device, duration_ms);
+}
+
+void devfreq_boost_kick_max_all(unsigned int duration_ms)
+{
+	struct df_boost_drv *d = df_boost_drv_g;
+	int i;
+
+	if (!d)
+		return;
+
+	if( boost_all) {
+
+		for (i = 0; i < DEVFREQ_MAX; i++)
+			__devfreq_boost_kick_max(d->devices + i,
+			duration_ms);
+	} else {
+		devfreq_boost_kick_max(DEVFREQ_MSM_CPUBW, duration_ms);
+	}
 }
 
 void devfreq_register_boost_device(enum df_device device, struct devfreq *df)
@@ -172,7 +205,8 @@ static void devfreq_unboost_all(struct df_boost_drv *d)
 
 		mutex_lock(&df->lock);
 		df->max_boost = false;
-		df->min_freq = devfreq_abs_min_freq(b);
+		df->boost_freq = devfreq_abs_min_freq(b);
+		df->boost_freq = 0;
 		update_devfreq(df);
 		mutex_unlock(&df->lock);
 	}
@@ -192,9 +226,9 @@ static void devfreq_input_boost(struct work_struct *work)
 
 		mutex_lock(&df->lock);
 		if (df->max_freq)
-			df->min_freq = min(boost_freq, df->max_freq);
+			df->boost_freq = min(boost_freq, df->max_freq);
 		else
-			df->min_freq = boost_freq;
+			df->boost_freq = boost_freq;
 		update_devfreq(df);
 		mutex_unlock(&df->lock);
 	}
@@ -210,7 +244,8 @@ static void devfreq_input_unboost(struct work_struct *work)
 	struct devfreq *df = b->df;
 
 	mutex_lock(&df->lock);
-	df->min_freq = devfreq_abs_min_freq(b);
+	//df->min_freq = devfreq_abs_min_freq(b);
+	df->boost_freq = 0;
 	update_devfreq(df);
 	mutex_unlock(&df->lock);
 }

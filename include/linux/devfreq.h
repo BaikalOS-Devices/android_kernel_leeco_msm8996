@@ -173,6 +173,7 @@ struct devfreq {
 	unsigned long max_freq;
 	bool is_boost_device;
 	bool max_boost;
+	unsigned long boost_freq;
 	bool stop_polling;
 
 	/* information for device frequency transition */

@@ -77,8 +77,11 @@ static void devfreq_set_freq_limits(struct devfreq *devfreq)
 	int idx;
 	unsigned long min = ~0, max = 0;
 
-	if (!devfreq->profile->freq_table)
+	if (!devfreq->profile->freq_table) {
+		dev_err(&devfreq->dev,	
+				"Couldn't load frequency table.\n");
 		return;
+	}
 
 	for (idx = 0; idx < devfreq->profile->max_state; idx++) {
 		if (min > devfreq->profile->freq_table[idx])
@@ -198,6 +201,12 @@ int update_devfreq(struct devfreq *devfreq)
 	if (devfreq->max_boost) {
 		/* Use the max freq for max boosts */
 		freq = ULONG_MAX;
+	} else if( devfreq->boost_freq ) {
+		if( devfreq->boost_freq > devfreq->previous_freq ) {
+			freq = devfreq->boost_freq;
+		} else {
+			freq = devfreq->previous_freq;
+		}
 	} else {
 		/* Reevaluate the proper frequency */
 		err = devfreq->governor->get_target_freq(devfreq, &freq, &flags);
@@ -226,10 +235,14 @@ int update_devfreq(struct devfreq *devfreq)
 	if (err)
 		return err;
 
-	if (devfreq->profile->freq_table)
-		if (devfreq_update_status(devfreq, freq))
+	if (devfreq->profile->freq_table) {
+		if (devfreq_update_status(devfreq, freq)) {
 			dev_err(&devfreq->dev,
 				"Couldn't update frequency transition information.\n");
+		} else { 
+			//dev_err(&devfreq->dev,"freq=%lu, min=%lu, max=%lu\n", freq, devfreq->min_freq, devfreq->max_freq);  
+		}
+	}
 
 	devfreq->previous_freq = freq;
 	return err;
@@ -933,8 +946,8 @@ static ssize_t min_freq_store(struct device *dev, struct device_attribute *attr,
 	unsigned long max;
 
 	/* Minfreq is managed by devfreq_boost */
-	if (df->is_boost_device)
-		return count;
+	//if (df->is_boost_device)
+	//	return count;
 
 	ret = sscanf(buf, "%lu", &value);
 	if (ret != 1)
@@ -943,8 +956,9 @@ static ssize_t min_freq_store(struct device *dev, struct device_attribute *attr,
 	mutex_lock(&df->lock);
 	max = df->max_freq;
 	if (value && max && value > max) {
-		ret = -EINVAL;
-		goto unlock;
+		//ret = -EINVAL;
+		//goto unlock;
+		df->max_freq = value;
 	}
 
 	df->min_freq = value;
@@ -976,8 +990,9 @@ static ssize_t max_freq_store(struct device *dev, struct device_attribute *attr,
 	mutex_lock(&df->lock);
 	min = df->min_freq;
 	if (value && min && value < min) {
-		ret = -EINVAL;
-		goto unlock;
+		//ret = -EINVAL;
+		//goto unlock;
+		df->min_freq = value;
 	}
 
 	df->max_freq = value;
