@@ -28,6 +28,10 @@ module_param(input_boost_freq_lp, uint, 0644);
 module_param(input_boost_freq_hp, uint, 0644);
 module_param(input_boost_duration, short, 0644);
 
+static bool boost_enabled=1;
+module_param(boost_enabled, bool, 0644);
+
+
 /* Available bits for boost_drv state */
 #define SCREEN_AWAKE		(1U << 0)
 #define INPUT_BOOST		(1U << 1)
@@ -108,6 +112,8 @@ void cpu_input_boost_kick(void)
 {
 	struct boost_drv *b = boost_drv_g;
 
+	if(!boost_enabled) return;
+
 	if (!b)
 		return;
 
@@ -136,6 +142,8 @@ static void __cpu_input_boost_kick_max(struct boost_drv *b,
 void cpu_input_boost_kick_max(unsigned int duration_ms)
 {
 	struct boost_drv *b = boost_drv_g;
+
+	if(!boost_enabled) return;
 
 	if (!b)
 		return;
@@ -192,7 +200,7 @@ static int cpu_notifier_cb(struct notifier_block *nb,
 {
 	struct boost_drv *b = container_of(nb, typeof(*b), cpu_notif);
 	struct cpufreq_policy *policy = data;
-	u32 boost_freq, state;
+	u32 boost_freq, state, max_freq;
 
 	if (action != CPUFREQ_ADJUST)
 		return NOTIFY_OK;
@@ -211,9 +219,12 @@ static int cpu_notifier_cb(struct notifier_block *nb,
 	 */
 	if (state & INPUT_BOOST) {
 		boost_freq = get_boost_freq(b, policy->cpu);
-		policy->min = min(policy->max, boost_freq);
+		max_freq = min(policy->max, boost_freq);
+		if( policy->min < max_freq ) {
+			policy->min = max_freq;
+		}
 	} else {
-		policy->min = policy->cpuinfo.min_freq;
+		//policy->min = policy->cpuinfo.min_freq;
 	}
 
 	return NOTIFY_OK;
