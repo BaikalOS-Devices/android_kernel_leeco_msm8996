@@ -964,7 +964,7 @@ static ssize_t min_freq_store(struct device *dev, struct device_attribute *attr,
 	df->min_freq = value;
 	update_devfreq(df);
 	ret = count;
-unlock:
+//unlock:
 	mutex_unlock(&df->lock);
 	return ret;
 }
@@ -998,7 +998,7 @@ static ssize_t max_freq_store(struct device *dev, struct device_attribute *attr,
 	df->max_freq = value;
 	update_devfreq(df);
 	ret = count;
-unlock:
+//unlock:
 	mutex_unlock(&df->lock);
 	return ret;
 }
