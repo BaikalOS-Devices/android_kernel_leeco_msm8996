@@ -2635,7 +2635,9 @@ int sched_boost_handler(struct ctl_table *table, int write,
 	if (!write)
 		sysctl_sched_boost = sched_boost();
 
-	ret = proc_dointvec(table, write, buffer, lenp, ppos);
+	//ret = proc_dointvec(table, write, buffer, lenp, ppos);
+	ret = 0;
+	write = 0;
 	if (ret || !write)
 		goto done;
 
