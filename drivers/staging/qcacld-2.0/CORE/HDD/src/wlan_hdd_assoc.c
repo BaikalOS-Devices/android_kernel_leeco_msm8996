@@ -214,7 +214,7 @@ hdd_connSetAuthenticated(hdd_adapter_t *pAdapter, v_U8_t authState)
    pHddStaCtx->conn_info.uIsAuthenticated = authState;
 
    /* Check is pending ROC request or not when auth state changed */
-   schedule_delayed_work(&pHddCtx->rocReqWork, 0);
+   queue_delayed_work(system_freezable_wq,&pHddCtx->rocReqWork, 0);
 }
 
 v_VOID_t hdd_connSetConnectionState( hdd_adapter_t *pAdapter,
@@ -233,7 +233,8 @@ v_VOID_t hdd_connSetConnectionState( hdd_adapter_t *pAdapter,
    pHddStaCtx->conn_info.connState = connState;
 
    /* Check is pending ROC request or not when connection state changed */
-   schedule_delayed_work(&pHddCtx->rocReqWork, 0);
+   if (connState != eConnectionState_NdiConnected)
+      queue_delayed_work(system_freezable_wq,&pHddCtx->rocReqWork, 0);
 }
 
 // returns FALSE if not connected.
