@@ -63,7 +63,7 @@ Include Files
 #define HDD_IPA_IPV4_NAME_EXT "_ipv4"
 #define HDD_IPA_IPV6_NAME_EXT "_ipv6"
 
-#define HDD_IPA_RX_INACTIVITY_MSEC_DELAY 1000
+#define HDD_IPA_RX_INACTIVITY_MSEC_DELAY  500
 #ifdef IPA_UC_OFFLOAD
 #define HDD_IPA_UC_WLAN_HDR_DES_MAC_OFFSET 12
 #define HDD_IPA_UC_WLAN_8023_HDR_SIZE      14
@@ -2582,7 +2582,7 @@ static int hdd_ipa_rm_try_release(struct hdd_ipa_priv *hdd_ipa)
 	 * while there is healthy amount of data transfer going on by
 	 * releasing the wake_lock after some delay.
 	 */
-	schedule_delayed_work(&hdd_ipa->wake_lock_work,
+	queue_delayed_work(system_freezable_wq,&hdd_ipa->wake_lock_work,
 			msecs_to_jiffies(HDD_IPA_RX_INACTIVITY_MSEC_DELAY));
 
 	adf_os_spin_unlock_bh(&hdd_ipa->rm_lock);
