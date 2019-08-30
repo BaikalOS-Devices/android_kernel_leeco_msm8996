@@ -298,6 +298,8 @@ void arch_cpu_idle_enter(void);
 void arch_cpu_idle_exit(void);
 void arch_cpu_idle_dead(void);
 
+DECLARE_PER_CPU(bool, cpu_dead_idle);
+
 #define IDLE_START 1
 #define IDLE_END 2
 
