@@ -193,19 +193,19 @@ static struct inode *pfk_bio_get_inode(const struct bio *bio)
  */
 static void *pfk_get_ecryptfs_data(const struct inode *inode)
 {
-	struct inode_security_struct *isec = NULL;
+	//struct inode_security_struct *isec = NULL;
 
 	if (!inode)
 		return NULL;
 
-	isec = inode->i_security;
+//	isec = inode->i_security;
 
-	if (!isec) {
+	if (!inode->i_security) {
 		pr_debug("i_security is NULL, could be irrelevant file\n");
 		return NULL;
 	}
 
-	return isec->pfk_data;
+	return inode->i_security->pfk_data;
 }
 
 /**
