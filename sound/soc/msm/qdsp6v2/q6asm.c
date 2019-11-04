@@ -5702,6 +5702,17 @@ int q6asm_stream_media_format_block_flac(struct audio_client *ac,
 	fmt.max_frame_size = cfg->max_frame_size;
 	fmt.sample_size = cfg->sample_size;
 
+	pr_err("%s : fmt.fmtblk.fmt_blk_size %d fmt.num_channels %d fmt.min_blk_size %d fmt.max_blk_size %d fmt.sample_rate %d fmt.min_frame_size %d fmt.max_frame_size %d fmt.sample_size %d\n",
+		__func__, 
+		fmt.fmtblk.fmt_blk_size,
+		fmt.num_channels,
+		fmt.min_blk_size,
+		fmt.max_blk_size,
+		fmt.sample_rate,
+		fmt.min_frame_size,
+		fmt.max_frame_size,
+		fmt.sample_size);
+
 	rc = apr_send_pkt(ac->apr, (uint32_t *) &fmt);
 	if (rc < 0) {
 		pr_err("%s :Comamnd media format update failed %d\n",
