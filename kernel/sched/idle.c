@@ -201,6 +201,8 @@ static void cpu_idle_loop(void)
 		 * guaranteed to cause the cpu to reschedule.
 		 */
 
+		int cpu = smp_processor_id();
+
 		__current_set_polling();
 		quiet_vmstat();
 		tick_nohz_idle_enter();
@@ -209,7 +211,7 @@ static void cpu_idle_loop(void)
 			check_pgt_cache();
 			rmb();
 
-			if (cpu_is_offline(smp_processor_id())) {
+			if (cpu_is_offline(cpu)) {
 				rcu_cpu_notify(NULL, CPU_DYING_IDLE,
 					       (void *)(long)smp_processor_id());
 				smp_mb(); /* all activity before dead. */
