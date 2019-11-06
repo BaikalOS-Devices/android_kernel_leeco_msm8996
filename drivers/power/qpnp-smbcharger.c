@@ -546,7 +546,7 @@ module_param_named(
 );
 
 #ifdef CONFIG_VENDOR_LEECO
-static int smbchg_default_hvdcp_icl_ma = 2800;
+static int smbchg_default_hvdcp_icl_ma = 3200;
 #else
 static int smbchg_default_hvdcp_icl_ma = 1800;
 #endif
@@ -5706,10 +5706,10 @@ static int smbchg_set_optimal_charging_mode(struct smbchg_chip *chip, int type)
 }
 
 /* Should be higher and tunable from userspace. */
-#define DEFAULT_SDP_MA		100
+#define DEFAULT_SDP_MA		900
 #define DEFAULT_ACA_MA		900 /* Own value, default 1000mA. */
 #ifdef CONFIG_VENDOR_LEECO
-#define DEFAULT_CDP_MA		1000
+#define DEFAULT_CDP_MA		1500
 #else
 #define DEFAULT_CDP_MA		1500
 #endif
