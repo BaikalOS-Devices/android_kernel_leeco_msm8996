@@ -698,8 +698,7 @@ static void process_rx_data(struct edge_info *einfo, uint16_t cmd_id,
 		err = true;
 	} else if (intent->data == NULL) {
 		if (einfo->intentless) {
-			intent->data = kmalloc(cmd.frag_size,
-						__GFP_ATOMIC | __GFP_HIGH);
+			intent->data = kmalloc(cmd.frag_size, GFP_ATOMIC);
 			if (!intent->data) {
 				err = true;
 				GLINK_ERR(
@@ -2300,8 +2299,6 @@ static int subsys_name_to_id(const char *name)
 		return SMEM_WCNSS;
 	if (!strcmp(name, "spss"))
 		return SMEM_SPSS;
-	if (!strcmp(name, "cdsp"))
-		return SMEM_CDSP;
 	return -ENODEV;
 }
 
