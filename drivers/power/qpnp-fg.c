@@ -4463,7 +4463,7 @@ static int fg_restore_soc(struct fg_chip *chip)
 }
 
 #define NOM_CAP_REG			0x4F4
-#define CAPACITY_DELTA_DECIPCT		500
+#define CAPACITY_DELTA_DECIPCT		50
 static int load_battery_aging_data(struct fg_chip *chip)
 {
 	int rc = 0;
