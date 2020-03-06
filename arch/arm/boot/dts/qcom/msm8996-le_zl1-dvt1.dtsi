@@ -35,19 +35,21 @@
         qcom,fg-chg-iterm-ma = <80>;
         qcom,fg-cutoff-voltage-mv = <3300>;
         qcom,irq-volt-empty-mv = <3200>;
+        qcom,resume-soc = <99>;
+        qcom,use-otp-profile;
 };
 
 &pm8994_mpps {
-		mpp@a700 {
-			reg = <0xa700 0x100>;
-			qcom,pin-num = <8>;
-			status = "okay";
-			qcom,mode = <0x1>;
-			qcom,pull = <0x0>;
-			qcom,invert = <0>;
-			qcom,output-type = <0>;
-			qcom,src-sel = <0>;
-			qcom,master-en = <1>;
-			qcom,vin-sel = <0x0>;
-		};
+        mpp@a700 {
+            reg = <0xa700 0x100>;
+            qcom,pin-num = <8>;
+            status = "okay";
+            qcom,mode = <0x1>;
+            qcom,pull = <0x0>;
+            qcom,invert = <0>;
+            qcom,output-type = <0>;
+            qcom,src-sel = <0>;
+            qcom,master-en = <1>;
+            qcom,vin-sel = <0x0>;
+        };
 };
