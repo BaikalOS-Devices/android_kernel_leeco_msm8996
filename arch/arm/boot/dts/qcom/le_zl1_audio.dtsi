@@ -64,7 +64,7 @@
 				"msm-dai-q6-dev.32770", "msm-dai-q6-dev.16394",
                 "msm-dai-q6-dev.16396";
 
-		qcom,hdmi-audio-rx;
+		//qcom,hdmi-audio-rx;
 		/*letv,hifi-audio;*/
 		/*letv,smartpa-audio;*/
 		letv,smartpa-audio-max98927;

@@ -477,7 +477,7 @@
 
 				pmx_mdss {
 					pins = "gpio24";
-					drive-strength = <8>; /* 8 mA */
+					drive-strength = <2>; /* 8 mA */
 					bias-disable = <0>; /* no pull */
 					output-high;
 				};
@@ -558,7 +558,7 @@
 
 				config {
 					pins = "gpio58", "gpio59";
-					drive-strength = <16>;
+					drive-strength = <2>;
 					bias-pull-up;
 				};
 			};

@@ -235,7 +235,7 @@
                 "msm-dai-q6-dev.32770", "msm-dai-q6-dev.16394",
                 "msm-dai-q6-dev.16396";
 
-        qcom,hdmi-audio-rx;
+        //qcom,hdmi-audio-rx;
         letv,smartpa-audio;
         letv,hph_irq_detect = <0>;
         asoc-codec = <&stub_codec>, <&hdmi_audio>;
@@ -444,9 +444,19 @@
                                 0x9F 0x1C
                                 0x00 0x18>;
 };
-&spi_11 {
+
+
+&pcie1 {
     status = "disabled";
 };
+
+&pcie2 {
+    status = "disabled";
+};
+
+/*&spi_11 {
+    status = "disabled";
+};*/
 
 &usb3 {
     qcom,usbin-vadc = <&pmi8994_vadc>;

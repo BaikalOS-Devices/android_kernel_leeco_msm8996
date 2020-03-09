@@ -16,6 +16,22 @@
 	/delete-property/ qcom,platform-bklight-en-gpio;
 };
 
+/*
+&mdss_dsi1 {
+	status = "disabled";
+};
+*/
+
+&mdss_hdmi_tx {
+	status = "disabled";
+};
+
+&mdss_hdmi_pll {
+	/*lyb@bsp 11/17/15: 15801 never VDD_HDMI(L12/L28)*/
+	status = "disabled";
+};
+
+
 &cyccg {
 	external-5v-en-flag;
 };
