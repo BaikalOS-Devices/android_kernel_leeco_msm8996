@@ -66,6 +66,7 @@
 			qcom,ea = <&ea0>;
 			next-level-cache = <&L2_0>;
 			sched-energy-costs = <&CPU_COST_0 &CLUSTER_COST_0>;
+			cpu-idle-states = <&CPU_SBY &CPU_RET &CPU_SPC &CPU_PC>;
 			L2_0: l2-cache {
 			      compatible = "arm,arch-cache";
 			      cache-level = <2>;
@@ -91,6 +92,7 @@
 			qcom,ea = <&ea1>;
 			next-level-cache = <&L2_0>;
 			sched-energy-costs = <&CPU_COST_0 &CLUSTER_COST_0>;
+			cpu-idle-states = <&CPU_SBY &CPU_RET &CPU_SPC &CPU_PC>;
 			L1_D_1: l1-dcache {
 				compatible = "arm,arch-cache";
 				qcom,dump-size = <0x7800>;
@@ -111,6 +113,7 @@
 			qcom,ea = <&ea2>;
 			next-level-cache = <&L2_1>;
 			sched-energy-costs = <&CPU_COST_1 &CLUSTER_COST_1>;
+			cpu-idle-states = <&CPU_SBY &CPU_RET &CPU_SPC &CPU_PC>;
 			L2_1: l2-cache {
 			      compatible = "arm,arch-cache";
 			      cache-level = <2>;
@@ -136,6 +139,7 @@
 			qcom,ea = <&ea3>;
 			next-level-cache = <&L2_1>;
 			sched-energy-costs = <&CPU_COST_1 &CLUSTER_COST_1>;
+			cpu-idle-states = <&CPU_SBY &CPU_RET &CPU_SPC &CPU_PC>;
 			L1_D_101: l1-dcache {
 				compatible = "arm,arch-cache";
 				qcom,dump-size = <0x7800>;
@@ -167,123 +171,148 @@
 			};
 		};
 
+		idle-states {
+			CPU_SBY: sby {
+				compatible = "qcom,idle-state-wfi", "arm,idle-state";
+				entry-latency-us = <1>;
+				exit-latency-us = <1>;
+				min-residency-us = <0>;
+			};
+			CPU_RET: ret {
+				compatible = "qcom,idle-state-ret", "arm,idle-state";
+				entry-latency-us = <15>;
+				exit-latency-us = <20>;
+				min-residency-us = <1>;
+			};
+			CPU_SPC: spc {
+				compatible = "qcom,idle-state-spc", "arm,idle-state";
+				entry-latency-us = <100>;
+				exit-latency-us = <150>;
+				min-residency-us = <2>;
+				local-timer-stop;
+			};
+			CPU_PC: pc {
+				compatible = "qcom,idle-state-pc", "arm,idle-state";
+				entry-latency-us = <150>;
+				exit-latency-us = <200>;
+				min-residency-us = <3>;
+				local-timer-stop;
+			};
+		};
+
+
+
 		energy-costs {
 			compatible = "sched-energy";
 
 			CPU_COST_0: core-cost0 {
 				busy-cost-data = <
-					149 90
-					188 111
-					225 133
-					257 160
-					281 182
-					315 210
-					368 251
-					406 306
-					428 332
-					469 379
-					502 438
-					538 494
-					581 550
-					611 613
-					648 670
-					684 752
-					729 848
-					763 925
+					307200 31
+					422400 38
+					480000 42
+					556800 46
+					652800 51
+					792600 58
+					844800 64
+					960000 70
+					103680 76
+					111360 83
+					119040 90
+					122880 97
+					132480 105
+					140160 114
+					147840 124
+					159360 136
 				>;
 				idle-cost-data = <
-			  		2 2 0
+			  		22 18 14 12
 				>;
 			};
 			CPU_COST_1: core-cost1 {
 				busy-cost-data = <
-					149 93
-					188 111
-					225 133
-					257 160
-					281 182
-					315 210
-					348 252
-					374 290
-					428 332
-					469 379
-					502 438
-					538 494
-					581 550
-					611 613
-					648 670
-					684 752
-					729 848
-					763 925
-					795 1018
-					832 1073
-					868 1209
-					905 1298
-					952 1428
-					979 1521
-					1024 1715
+					307200 258
+					403200 260
+					480000 261
+					556800 263
+					652800 267
+					729600 272
+					806400 280
+					883200 291
+					940800 305
+					103680 324
+					111360 348
+					119040 378
+					124800 415
+					132480 460
+					140160 513
+					147840 576
+					155520 649
+					163200 732
+					170880 824
+					178560 923
+					182400 1027
+					192000 1131
+					199680 1129
+					207360 1308
+					215040 1750
 				>;
 				idle-cost-data = <
-				      2 2 0
+				      100 80 60 40
 				>;
 			};
 			CLUSTER_COST_0: cluster-cost0 {
 				busy-cost-data = <
-					149 4
-					188 4
-					225 4
-					257 4
-					281 4
-					315 4
-					368 8
-					406 9
-					428 15
-					469 16
-					502 21
-					538 22
-					581 29
-					611 32
-					648 42
-					684 49
-					729 41
-					763 52
+					307200 3
+					422400 4
+					480000 4
+					556800 4
+					652800 5
+					792600 5
+					844800 6
+					960000 7
+					103680 7
+					111360 8
+					119040 9
+					122880 9
+					132480 10
+					140160 11
+					147840 12
+					159360 13
 				>;
 				idle-cost-data = <
-					0
-					0
+					4 3 2 1
 				>;
 			};
 			CLUSTER_COST_1: cluster-cost1 {
 				busy-cost-data = <
-					149 4
-					188 4
-					225 4
-					257 4
-					281 4
-					315 4
-					348 7
-					374 10
-					428 15
-					469 16
-					502 21
-					538 22
-					581 29
-					611 32
-					648 42
-					684 49
-					729 41
-					763 52
-					795 62
-					832 69
-					868 75
-					905 81
-					952 90
-					979 93
-					1024 96
+					307200 24
+					403200 25
+					480000 26
+					556800 26
+					652800 26
+					729600 27
+					806400 28
+					883200 29
+					940800 30
+					103680 32
+					111360 34
+					119040 37
+					124800 41
+					132480 46
+					140160 51
+					147840 57
+					155520 64
+					163200 73
+					170880 82
+					178560 92
+					182400 102
+					192000 113
+					199680 114
+					207360 130
+					215040 170
 				>;
 				idle-cost-data = <
-					0
-					0
+					4 3 2 1
 				>;
 			};
 		};
@@ -590,7 +619,7 @@
 		compatible = "qcom,msm-hsuart-v14";
 		reg = <0x07570000 0x1000>,
 		    <0x7544000 0x2b000>;
-		status = "disabled";
+		status = "ok";
 		reg-names = "core_mem", "bam_mem";
 		interrupt-names = "core_irq", "bam_irq", "wakeup_irq";
 		#address-cells = <0>;
