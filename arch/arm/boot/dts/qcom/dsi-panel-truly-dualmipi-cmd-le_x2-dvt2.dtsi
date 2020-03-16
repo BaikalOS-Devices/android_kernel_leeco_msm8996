@@ -14,6 +14,7 @@
 	dsi_dualdsi_truly_cmd: qcom,mdss_dsi_truly_qhd_dualdsi_cmd_le_x2 {
 		qcom,mdss-dsi-panel-name = "le_x2_mdss_dsi_sharp_qhd_dualdsi_cmd";
 		qcom,mdss-dsi-panel-type = "dsi_cmd_mode";
+        qcom,panel-allow-phy-poweroff;
 		qcom,mdss-dsi-panel-framerate = <60>;
 		qcom,mdss-dsi-virtual-channel-id = <0>;
 		qcom,mdss-dsi-stream = <0>;
@@ -70,6 +71,7 @@
 		qcom,mdss-dsi-te-check-enable;
 		qcom,mdss-dsi-te-using-te-pin;
 		qcom,ulps-enabled;
+        qcom,suspend-ulps-enabled;
 		qcom,dcs-cmd-by-left;
 		qcom,config-select = <&dsi_truly_qhd_dualdsi_cmd_le_x2_config0>;
 		qcom,mdss-dsi-on-command = [

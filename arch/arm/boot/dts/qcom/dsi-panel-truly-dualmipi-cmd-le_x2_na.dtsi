@@ -15,6 +15,7 @@
 		qcom,mdss-dsi-panel-name = "le_x2_na_mdss_dsi_truly_qhd_dualdsi_cmd";
 		qcom,mdss-dsi-panel-type = "dsi_cmd_mode";
 		qcom,mdss-dsi-panel-framerate = <60>;
+        qcom,panel-allow-phy-poweroff;
 		qcom,mdss-dsi-virtual-channel-id = <0>;
 		qcom,mdss-dsi-stream = <0>;
 		qcom,mdss-dsi-panel-width = <720>;
@@ -59,6 +60,7 @@
 		qcom,mdss-dsi-te-check-enable;
 		qcom,mdss-dsi-te-using-te-pin;
 		qcom,ulps-enabled;
+        qcom,suspend-ulps-enabled;
 		qcom,mdss-dsi-on-command = [
 					23 01 00 00 00 00 02 B0 04                      //Manufacturer command access protect
 					29 01 00 00 00 00 04 B3 00 00 00  		//0X04 Command Mode,  0X05 Video Mode
