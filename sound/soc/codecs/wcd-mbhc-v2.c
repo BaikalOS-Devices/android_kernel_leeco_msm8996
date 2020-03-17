@@ -1226,7 +1226,30 @@ exit:
 }
 
 static int disable_hp_detect __read_mostly;
-module_param(disable_hp_detect, int, 0664);
+//module_param(disable_hp_detect, int, 0664);
+
+static int disable_hp_detect_parm_set(const char *val, struct kernel_param *kp)
+{
+	param_set_int(val, kp);
+
+    pr_err("%s: disable_hp_detect (%d)\n", __func__, disable_hp_detect);
+    if( disable_hp_detect ) {
+        msleep(3000);
+       	if (g_mbhc != NULL) {
+    		WCD_MBHC_RSC_LOCK(g_mbhc);
+            wcd_mbhc_report_plug(g_mbhc, 0, SND_JACK_HEADSET);
+		    WCD_MBHC_RSC_UNLOCK(g_mbhc);
+        } else {
+            pr_err("%s: device not ready yet\n", __func__);
+        }
+    } 
+    return 0;
+}
+
+
+module_param_call(disable_hp_detect, disable_hp_detect_parm_set,
+			param_get_int, &disable_hp_detect, 0664);
+
 
 static void wcd_correct_swch_plug(struct work_struct *work)
 {
@@ -1817,9 +1840,11 @@ static int headset_detect_enable_parm_set(const char *val, struct kernel_param *
 
 	if (1 == headset_detect_enable) {
 		pr_info("enter %s, detect headset start!\n", __func__);
+        msleep(3000);
 		wcd_mbhc_plug_detect();
 	} else {
 		pr_info("enter %s, detect headset stop!\n", __func__);
+        msleep(3000);
 		wcd_mbhc_plug_detect();
 	}
 	return 0;
