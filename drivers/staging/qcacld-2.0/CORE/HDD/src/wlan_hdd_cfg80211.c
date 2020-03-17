@@ -1616,9 +1616,15 @@ static int __is_driver_dfs_capable(struct wiphy *wiphy,
         return -EPERM;
     }
 
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0)) || \
-    defined (DFS_MASTER_OFFLOAD_IND_SUPPORT) || defined(WITH_BACKPORTS)
+#if defined (DFS_MASTER_OFFLOAD_IND_SUPPORT) || defined(WITH_BACKPORTS)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,17,0)) || \
+	defined(CFG80211_DFS_OFFLOAD_BACKPORT)
+	dfs_capability =
+		wiphy_ext_feature_isset(wiphy,
+					NL80211_EXT_FEATURE_DFS_OFFLOAD);
+#elif (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0))
     dfs_capability = !!(wiphy->flags & WIPHY_FLAG_DFS_OFFLOAD);
+#endif
 #endif
 
     temp_skbuff = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, sizeof(u32) +
@@ -8359,6 +8365,7 @@ __wlan_hdd_cfg80211_get_wifi_info(struct wiphy *wiphy,
 	struct nlattr *tb_vendor[QCA_WLAN_VENDOR_ATTR_WIFI_INFO_GET_MAX + 1];
 	tSirVersionString driver_version;
 	tSirVersionString firmware_version;
+	const char *hw_version;
 	uint32_t major_spid = 0, minor_spid = 0, siid = 0, crmid = 0;
 	int status;
 	struct sk_buff *reply_skb;
@@ -8394,8 +8401,10 @@ __wlan_hdd_cfg80211_get_wifi_info(struct wiphy *wiphy,
 		hddLog(LOG1, FL("Rcvd req for FW version"));
 		hdd_get_fw_version(hdd_ctx, &major_spid, &minor_spid, &siid,
 				   &crmid);
+		hw_version = hdd_ctx->target_hw_name;
 		snprintf(firmware_version, sizeof(firmware_version),
-			 "%d:%d:%d:%d", major_spid, minor_spid, siid, crmid);
+			 "FW:%d:%d:%d:%d HW:%s", major_spid, minor_spid, siid,
+			 crmid, hw_version);
 		skb_len += strlen(firmware_version) + 1;
 		count++;
 	}
@@ -10475,6 +10484,7 @@ wlan_hdd_wifi_config_policy[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_SUB20_CHAN_WIDTH] = {.type = NLA_U32},
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_ABS_DELAY] = {.type = NLA_U32},
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_RESTRICT_OFFCHANNEL] = {.type = NLA_U8},
+	[QCA_WLAN_VENDOR_ATTR_CONFIG_LATENCY_LEVEL] = {.type = NLA_U16 },
 };
 
 /**
@@ -10629,7 +10639,7 @@ hdd_sta_set_sub20_channelwidth(hdd_adapter_t *adapter, uint32_t chan_width)
  * Return: The VOS_STATUS code associated with performing
  * the operation
  */
-static VOS_STATUS
+VOS_STATUS
 hdd_get_sub20_channelwidth(hdd_adapter_t *adapter, uint32_t *sub20_channelwidth)
 {
 	tHalHandle hal_ptr = WLAN_HDD_GET_HAL_CTX(adapter);
@@ -10763,6 +10773,7 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	char vendor_ie[SIR_MAC_MAX_IE_LENGTH + 2];
 	bool vendor_ie_present = false, access_policy_present = false;
 	uint32_t ant_div_usrcfg;
+	uint16_t latency_level;
 
 	if (VOS_FTM_MODE == hdd_get_conparam()) {
 		hddLog(LOGE, FL("Command not allowed in FTM mode"));
@@ -11109,6 +11120,30 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 		if (ret_val) {
 			hddLog(LOG1, FL("Failed to set antdiv_selftest_intvl"));
 			return ret_val;
+		}
+	}
+
+	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_LATENCY_LEVEL]) {
+		latency_level = nla_get_u16(
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_LATENCY_LEVEL]);
+
+		if ((latency_level >
+		    QCA_WLAN_VENDOR_ATTR_CONFIG_LATENCY_LEVEL_MAX) ||
+		    (latency_level ==
+		    QCA_WLAN_VENDOR_ATTR_CONFIG_LATENCY_LEVEL_INVALID)) {
+			hddLog(LOGE, FL("Invalid Wlan latency level value"));
+			return -EINVAL;
+		}
+
+		/* Mapping the latency value to the level which fw expected
+		 * 0 - normal, 1 - moderate, 2 - low, 3 - ultralow
+		 */
+		latency_level = latency_level - 1;
+		vos_status = wma_set_wlm_latency_level(pAdapter->sessionId,
+						       latency_level);
+		if (vos_status != VOS_STATUS_SUCCESS) {
+			hddLog(LOGE, FL("set Wlan latency level failed"));
+			ret_val = -EINVAL;
 		}
 	}
 
@@ -14376,6 +14411,9 @@ static int32_t hdd_add_tx_bitrate(struct sk_buff *skb,
 	txrate.mcs = hdd_sta_ctx->cache_conn_info.txrate.mcs;
 	txrate.legacy = hdd_sta_ctx->cache_conn_info.txrate.legacy;
 	txrate.nss = hdd_sta_ctx->cache_conn_info.txrate.nss;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+	txrate.bw = hdd_sta_ctx->cache_conn_info.txrate.bw;
+#endif
 
 	bitrate = cfg80211_calculate_bitrate(&txrate);
 
@@ -14383,6 +14421,9 @@ static int32_t hdd_add_tx_bitrate(struct sk_buff *skb,
 	hdd_sta_ctx->cache_conn_info.txrate.mcs = txrate.mcs;
 	hdd_sta_ctx->cache_conn_info.txrate.legacy = txrate.legacy;
 	hdd_sta_ctx->cache_conn_info.txrate.nss = txrate.nss;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+	hdd_sta_ctx->cache_conn_info.txrate.bw = txrate.bw;
+#endif
 
 	/* report 16-bit bitrate only if we can */
 	bitrate_compat = bitrate < (1UL << 16) ? bitrate : 0;
@@ -16345,6 +16386,22 @@ static void wlan_hdd_cfg80211_set_wiphy_sae_feature(struct wiphy *wiphy,
 }
 #endif
 
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0)) || \
+	defined (DFS_MASTER_OFFLOAD_IND_SUPPORT) || defined(WITH_BACKPORTS)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0)) || \
+	defined(CFG80211_DFS_OFFLOAD_BACKPORT)
+static void wlan_hdd_cfg80211_set_dfs_offload_feature(struct wiphy *wiphy)
+{
+	wiphy_ext_feature_set(wiphy, NL80211_EXT_FEATURE_DFS_OFFLOAD);
+}
+#else
+static void wlan_hdd_cfg80211_set_dfs_offload_feature(struct wiphy *wiphy)
+{
+	wiphy->flags |= WIPHY_FLAG_DFS_OFFLOAD;
+}
+#endif
+#endif
+
 /*
  * FUNCTION: wlan_hdd_cfg80211_init
  * This function is called by hdd_wlan_startup()
@@ -16614,10 +16671,9 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     wiphy->n_vendor_events = ARRAY_SIZE(wlan_hdd_cfg80211_vendor_events);
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0)) || \
-    defined (DFS_MASTER_OFFLOAD_IND_SUPPORT) || defined(WITH_BACKPORTS)
-    if (pCfg->enableDFSMasterCap) {
-        wiphy->flags |= WIPHY_FLAG_DFS_OFFLOAD;
-    }
+	defined (DFS_MASTER_OFFLOAD_IND_SUPPORT) || defined(WITH_BACKPORTS)
+    if (pCfg->enableDFSMasterCap)
+	wlan_hdd_cfg80211_set_dfs_offload_feature(wiphy);
 #endif
 
     wiphy->max_ap_assoc_sta = pHddCtx->max_peers;
@@ -17386,11 +17442,6 @@ int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter)
 
     wlan_hdd_add_extra_ie(pHostapdAdapter, genie, &total_ielen,
                           WLAN_EID_VHT_TX_POWER_ENVELOPE);
-
-    if(test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags))
-        wlan_hdd_add_extra_ie(pHostapdAdapter, genie, &total_ielen,
-                              WLAN_EID_RSN);
-
     if (0 != wlan_hdd_add_ie(pHostapdAdapter, genie,
                               &total_ielen, WPS_OUI_TYPE, WPS_OUI_TYPE_SIZE))
     {
@@ -25012,7 +25063,11 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
                             req->bssid, req->ssid,
                             req->ssid_len);
                 if (bss) {
-                    cfg80211_assoc_timeout(ndev, bss);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0))
+                    cfg80211_assoc_timeout(ndev,bss);
+#else
+                    cfg80211_send_assoc_timeout(ndev, bss->bssid);
+#endif
                     return -ETIMEDOUT;
                 }
             }
@@ -25184,6 +25239,7 @@ disconnected:
  * Return: string conversion of reason code, if match found;
  *         "Unknown" otherwise.
  */
+#ifdef WLAN_DEBUG
 static const char *hdd_ieee80211_reason_code_to_str(uint16_t reason)
 {
 	switch (reason) {
@@ -25238,6 +25294,7 @@ static const char *hdd_ieee80211_reason_code_to_str(uint16_t reason)
 		return "Unknown";
 	}
 }
+#endif
 /*
  * FUNCTION: __wlan_hdd_cfg80211_disconnect
  * This function is used to issue a disconnect request to SME
@@ -26005,6 +26062,7 @@ static int __wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy,
     hdd_adapter_t *pAdapter;
     hdd_context_t *pHddCtx = (hdd_context_t*) wiphy_priv(wiphy);
     int status;
+    hdd_station_ctx_t *sta_ctx;
 
     ENTER();
 
@@ -26023,6 +26081,14 @@ static int __wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy,
     if (NULL == pAdapter) {
         hddLog(VOS_TRACE_LEVEL_FATAL, FL("pAdapter is NULL"));
         return -ENOENT;
+    }
+    sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+
+    if (sta_ctx->conn_info.connState != eConnectionState_Associated) {
+        hddLog(LOG1, FL("Not associated"));
+        /*To keep GUI happy */
+        *dbm = 0;
+        return 0;
     }
 
     MTRACE(vos_trace(VOS_MODULE_ID_HDD, TRACE_CODE_HDD_CFG80211_GET_TXPOWER,
@@ -27725,6 +27791,9 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
     pHddStaCtx->conn_info.txrate.mcs = sinfo->txrate.mcs;
     pHddStaCtx->conn_info.txrate.legacy = sinfo->txrate.legacy;
     pHddStaCtx->conn_info.txrate.nss = sinfo->txrate.nss;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+    pHddStaCtx->conn_info.txrate.bw = sinfo->txrate.bw;
+#endif
     vos_mem_copy(&pHddStaCtx->cache_conn_info.txrate,
                  &pHddStaCtx->conn_info.txrate,
                  sizeof(pHddStaCtx->conn_info.txrate));
@@ -30926,6 +30995,7 @@ static void wlan_hdd_chan_info_cb(struct scan_chan_info *info)
 				chan[idx].noise_floor = info->noise_floor;
 				chan[idx].cycle_count = info->cycle_count;
 				chan[idx].rx_clear_count = info->rx_clear_count;
+				chan[idx].rx_frame_count = info->rx_frame_count;
 				chan[idx].tx_frame_count = info->tx_frame_count;
 				chan[idx].clock_freq = info->clock_freq;
 				break;
@@ -30937,6 +31007,10 @@ static void wlan_hdd_chan_info_cb(struct scan_chan_info *info)
 				chan[idx].delta_rx_clear_count =
 						info->rx_clear_count -
 						chan[idx].rx_clear_count;
+
+				chan[idx].delta_rx_frame_count =
+						info->rx_frame_count -
+						chan[idx].rx_frame_count;
 
 				chan[idx].delta_tx_frame_count =
 						info->tx_frame_count -
@@ -30996,8 +31070,7 @@ void wlan_hdd_init_chan_info(hdd_context_t *hdd_ctx)
 		}
 		sme_set_chan_info_callback(
 			hdd_ctx->hHal,
-			&wlan_hdd_chan_info_cb
-			);
+			wlan_hdd_chan_info_cb);
 	}
 }
 
@@ -31104,13 +31177,17 @@ static int __wlan_hdd_cfg80211_dump_survey(struct wiphy *wiphy,
                     survey->time_busy =
                               pHddCtx->chan_info[idx].delta_rx_clear_count /
                                   (pHddCtx->chan_info[idx].clock_freq * 1000);
+                    survey->time_rx =
+                              pHddCtx->chan_info[idx].delta_rx_frame_count /
+                                  (pHddCtx->chan_info[idx].clock_freq * 1000);
                     survey->time_tx =
                               pHddCtx->chan_info[idx].delta_tx_frame_count /
                                   (pHddCtx->chan_info[idx].clock_freq * 1000);
 
                     survey->filled |= SURVEY_INFO_TIME |
                                       SURVEY_INFO_TIME_BUSY |
-                                      SURVEY_INFO_TIME_TX;
+                                      SURVEY_INFO_TIME_TX |
+                                      SURVEY_INFO_TIME_RX;
 #else
                     survey->channel_time =
                               pHddCtx->chan_info[idx].delta_cycle_count /
@@ -31178,7 +31255,7 @@ static int __wlan_hdd_cfg80211_channel_switch(struct wiphy *wiphy,
 	v_U16_t freq;
 	int ret;
 	tsap_Config_t *sap_config;
-	uint32_t current_sub20_chan_width;
+	uint32_t current_sub20_chan_width = 0;
 	uint32_t target_sub20_chan_width;
 
 	hddLog(LOG1, FL("Set Freq %d sub20 chanwidth %d"),
@@ -31228,10 +31305,10 @@ static int __wlan_hdd_cfg80211_channel_switch(struct wiphy *wiphy,
 	}
 
 	if (channel != current_channel &&
-	    target_sub20_chan_width == current_sub20_chan_width) {
+	    target_sub20_chan_width == current_sub20_chan_width &&
+	    current_sub20_chan_width == NL80211_CHAN_WIDTH_20_NOHT) {
 		ret = hdd_softap_set_channel_change(dev, channel);
-	} else if (sap_config->sub20_switch_mode == SUB20_MANUAL &&
-		target_sub20_chan_width != current_sub20_chan_width) {
+	} else if (sap_config->sub20_switch_mode == SUB20_MANUAL) {
 		ret = hdd_softap_set_channel_sub20_chanwidth_change(
 					dev, csa_params->chandef.width,
 					channel);

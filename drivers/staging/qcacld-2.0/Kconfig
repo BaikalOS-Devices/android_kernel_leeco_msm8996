@@ -75,4 +75,12 @@ config DPTRACE_ENABLE
 	bool "Enable DPTRACE feature for non performance builds"
 	default n
 
+config PBM_MAGIC_WOW
+	bool "PBM_MAGIC_WOW"
+	default n
+
+config WLAN_DYNAMIC_POWER_CONTROL
+	bool "WLAN_DYNAMIC_POWER_CONTROL"
+	default n
+
 endif # QCA_CLD_WLAN

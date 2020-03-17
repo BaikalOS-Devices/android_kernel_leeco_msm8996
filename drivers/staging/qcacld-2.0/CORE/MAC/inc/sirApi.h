@@ -3722,6 +3722,17 @@ typedef struct sSirSmeCoexInd
     tANI_U32        coexIndData[SIR_COEX_IND_DATA_SIZE];
 }tSirSmeCoexInd, *tpSirSmeCoexInd;
 
+/**
+ * enum rxmgmt_flags - flags for received management frame.
+ * @RXMGMT_FLAG_NONE: Default value to indicate no flags are set.
+ * @RXMGMT_FLAG_EXTERNAL_AUTH: frame can be used for external authentication
+ *                             by upper layers.
+ */
+enum rxmgmt_flags {
+	RXMGMT_FLAG_NONE,
+	RXMGMT_FLAG_EXTERNAL_AUTH = 1 << 1,
+};
+
 typedef struct sSirSmeMgmtFrameInd
 {
     uint16_t        frame_len;
@@ -3729,6 +3740,7 @@ typedef struct sSirSmeMgmtFrameInd
     tANI_U8        sessionId;
     tANI_U8         frameType;
     tANI_S8         rxRssi;
+    enum rxmgmt_flags rx_flags;
     tANI_U8  frameBuf[1]; //variable
 }tSirSmeMgmtFrameInd, *tpSirSmeMgmtFrameInd;
 
@@ -4744,6 +4756,44 @@ typedef struct sSirScanOffloadReq {
       struct vendor_oui voui;
       ------------------------*/
 } tSirScanOffloadReq, *tpSirScanOffloadReq;
+
+/**
+ * struct wlm_latency_level_param - WLM parameters
+ * @wlm_latency_level: wlm latency level to set
+ *  0 - normal, 1 - moderate, 2 - low, 3 - ultralow
+ * @wlm_latency_flags: wlm latency flags to set
+ *  |31  12|  11  |  10  |9    8|7    6|5    4|3    2|  1  |  0  |
+ *  +------+------+------+------+------+------+------+-----+-----+
+ *  | RSVD | SSLP | CSLP | RSVD | Roam | RSVD | DWLT | DFS | SUP |
+ *  +------+-------------+-------------+-------------------------+
+ *  |  WAL |      PS     |     Roam    |         Scan            |
+ *
+ *  bit 0: Avoid scan request from HLOS if setting
+ *  bit 1: Skip DFS channel SCAN if setting
+ *  bit 2-3: Define policy of dwell time/duration for each foreign channel
+ *     (b2 b3)
+ *     (0  0 ): Default scan dwell time
+ *     (0  1 ): Reserve
+ *     (1  0 ): Shrink off channel dwell time
+ *     (1  1 ): Reserve
+ *  bit 4-5: Reserve for scan
+ *  bit 6-7: Define roaming policy
+ *     (b6 b7)
+ *     (0  0 ): Default roaming behavior, allow roaming in all scenarios
+ *     (0  1 ): Disallow all roaming
+ *     (1  0 ): Allow roaming when final bmissed
+ *     (1  1 ): Reserve
+ *  bit 8-9: Reserve for roaming
+ *  bit 10: Disable css power collapse if setting
+ *  bit 11: Disable sys sleep if setting
+ *  bit 12-31: Reserve for future useage
+ * @vdev_id: vdev id
+ */
+struct wlm_latency_level_param {
+	uint16_t wlm_latency_level;
+	uint32_t wlm_latency_flags;
+	uint16_t vdev_id;
+};
 
 /**
  * sir_scan_event_type - scan event types used in LIM
@@ -6446,6 +6496,16 @@ typedef struct
     /* num of pending msdu */
     tANI_U32 pending_msdu;
 } tSirWifiWmmAcStat, *tpSirWifiWmmAcStat;
+
+struct driver_txq_states {
+	char *cat_name;
+	int wrr_count;
+	int pending_frms;
+	int pending_bytes;
+	bool active;
+	int discard_frms;
+	int dispatched_frms;
+};
 
 /* Interface statistics - corresponding to 2nd most
  * LSB in wifi statistics bitmap  for getting statistics
@@ -8592,6 +8652,7 @@ struct sme_flush_pending {
  * @cycle_count: cycle count
  * @rx_clear_count: rx clear count
  * @tx_frame_count: TX frame count
+ * @rx_frame_count: RX frame count
  * @clock_freq: clock frequence MHZ
  */
 struct scan_chan_info {
@@ -8601,6 +8662,7 @@ struct scan_chan_info {
 	uint32_t cycle_count;
 	uint32_t rx_clear_count;
 	uint32_t tx_frame_count;
+	uint32_t rx_frame_count;
 	uint32_t clock_freq;
 };
 

@@ -214,7 +214,7 @@ hdd_connSetAuthenticated(hdd_adapter_t *pAdapter, v_U8_t authState)
    pHddStaCtx->conn_info.uIsAuthenticated = authState;
 
    /* Check is pending ROC request or not when auth state changed */
-   queue_delayed_work(system_freezable_wq,&pHddCtx->rocReqWork, 0);
+   schedule_delayed_work(&pHddCtx->rocReqWork, 0);
 }
 
 v_VOID_t hdd_connSetConnectionState( hdd_adapter_t *pAdapter,
@@ -233,8 +233,7 @@ v_VOID_t hdd_connSetConnectionState( hdd_adapter_t *pAdapter,
    pHddStaCtx->conn_info.connState = connState;
 
    /* Check is pending ROC request or not when connection state changed */
-   if (connState != eConnectionState_NdiConnected)
-      queue_delayed_work(system_freezable_wq,&pHddCtx->rocReqWork, 0);
+   schedule_delayed_work(&pHddCtx->rocReqWork, 0);
 }
 
 // returns FALSE if not connected.
@@ -5627,6 +5626,12 @@ int hdd_set_csr_auth_type ( hdd_adapter_t  *pAdapter, eCsrAuthType RSNAuthType)
 				hddLog(LOG1, "updated profile authtype as %d", RSNAuthType);
             } else
 #endif
+            if ((RSNAuthType == eCSR_AUTH_TYPE_SAE) &&
+		((pWextState->authKeyMgmt & IW_AUTH_KEY_MGMT_802_1X)
+		== IW_AUTH_KEY_MGMT_802_1X)) {
+		/* SAE case */
+		pRoamProfile->AuthType.authType[0] = eCSR_AUTH_TYPE_SAE;
+	    } else
             if ((RSNAuthType == eCSR_AUTH_TYPE_OWE) &&
                 ((pWextState->authKeyMgmt & IW_AUTH_KEY_MGMT_802_1X)
                   == IW_AUTH_KEY_MGMT_802_1X)) {
