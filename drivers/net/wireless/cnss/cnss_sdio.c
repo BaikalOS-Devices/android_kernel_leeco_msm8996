@@ -1,4 +1,4 @@
-/* Copyright (c) 2015-2018, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2015-2019, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -80,6 +80,7 @@ struct cnss_sdio_info {
 	const struct sdio_device_id *id;
 	bool skip_wlan_en_toggle;
 	bool cnss_hw_state;
+	int tsf_gpio;
 	struct cnss_cap_tsf_info cap_tsf_info;
 	enum cnss_sleep_power_mode sleep_power_mode;
 };
@@ -815,6 +816,9 @@ static void cnss_sdio_tsf_deinit(struct cnss_cap_tsf_info *tsf_info)
 static void cnss_sdio_set_platform_ops(struct device *dev)
 {
 	struct cnss_dev_platform_ops *pf_ops = &cnss_pdata->platform_ops;
+	struct cnss_sdio_info *info;
+
+	info = &cnss_pdata->cnss_sdio_info;
 
 	pf_ops->power_up = cnss_sdio_power_up;
 	pf_ops->power_down = cnss_sdio_power_down;
@@ -1584,7 +1588,10 @@ static int cnss_sdio_probe(struct platform_device *pdev)
 							  "qcom,skip-wlan-en-toggle");
 	info->cnss_hw_state = CNSS_HW_ACTIVE;
 
-	cnss_sdio_tsf_init(dev, &info->cap_tsf_info);
+	info->tsf_gpio = of_get_named_gpio(dev->of_node,
+					   WLAN_GPIO_CAPTSF_NAME, 0);
+	if (info->tsf_gpio >= 0)
+		cnss_sdio_tsf_init(dev, &info->cap_tsf_info);
 
 	info->sleep_power_mode = CNSS_SLEEP_POWER_MODE_NONE;
 
@@ -1639,15 +1646,18 @@ err_wlan_enable_regulator:
 static int cnss_sdio_remove(struct platform_device *pdev)
 {
 	struct cnss_sdio_info *info;
-	struct cnss_cap_tsf_info *tsf_info;
 
 	if (!cnss_pdata)
 		return -ENODEV;
 
 	info = &cnss_pdata->cnss_sdio_info;
-	tsf_info = &info->cap_tsf_info;
 
-	cnss_sdio_tsf_deinit(tsf_info);
+	if (info->tsf_gpio >= 0) {
+		struct cnss_cap_tsf_info *tsf_info;
+
+		tsf_info = &info->cap_tsf_info;
+		cnss_sdio_tsf_deinit(tsf_info);
+	}
 	cnss_sdio_deinit_bus_bandwidth();
 	cnss_sdio_wlan_exit();
 	cnss_subsys_exit();
