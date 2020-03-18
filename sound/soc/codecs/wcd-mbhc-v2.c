@@ -1239,14 +1239,14 @@ static int disable_hp_detect_parm_set(const char *val, struct kernel_param *kp)
 
     pr_err("%s: disable_hp_detect (%d)\n", __func__, disable_hp_detect);
     if( disable_hp_detect ) {
-        msleep(3000);
+        /*msleep(3000);
        	if (g_mbhc != NULL) {
     		WCD_MBHC_RSC_LOCK(g_mbhc);
             wcd_mbhc_report_plug(g_mbhc, 0, SND_JACK_HEADSET);
 		    WCD_MBHC_RSC_UNLOCK(g_mbhc);
         } else {
             pr_err("%s: device not ready yet\n", __func__);
-        }
+        }*/
     } 
     return 0;
 }
