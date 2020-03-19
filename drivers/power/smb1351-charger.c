@@ -2834,11 +2834,6 @@ static void smb1351_chg_adc_notification(enum qpnp_tm_state state, void *ctx)
 		}
 	}
 
-	if (!cur) {
-		pr_err("invalid transaction: state %d, temp %d\n", state, temp);
-		return;
-	}
-
 	if (cur->batt_present)
 		chip->battery_missing = false;
 	else
