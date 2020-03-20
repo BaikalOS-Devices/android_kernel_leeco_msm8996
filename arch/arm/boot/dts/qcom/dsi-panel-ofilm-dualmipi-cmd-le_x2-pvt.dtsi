@@ -12,7 +12,7 @@
 
 &mdss_mdp {
 	dsi_dualdsi_ofilm_cmd_pvt: qcom,mdss_dsi_ofilm_qhd_dualdsi_cmd_le_x2_pvt {
-		qcom,mdss-dsi-panel-name = "le_x2_mdss_dsi_truly_qhd_dualdsi_cmd_pvt";
+		qcom,mdss-dsi-panel-name = "le_x2_mdss_dsi_ofilm_qhd_dualdsi_cmd_pvt";
 		qcom,mdss-dsi-panel-type = "dsi_cmd_mode";
 		qcom,mdss-dsi-panel-framerate = <60>;
 		qcom,mdss-dsi-virtual-channel-id = <0>;
