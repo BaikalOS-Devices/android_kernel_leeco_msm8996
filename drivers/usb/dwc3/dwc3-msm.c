@@ -4803,7 +4803,7 @@ module_exit(dwc3_msm_exit);
 
 static bool _wake_active = 0;
 static void sdv_pm_stay_awake(int line, struct device *dev) {
-    pr_err("%s: line: %d\n",__func__, line);
+    //pr_err("%s: line: %d\n",__func__, line);
     if( ! _wake_active ) {
         _wake_active = 1;
         pm_stay_awake(dev);
@@ -4811,7 +4811,7 @@ static void sdv_pm_stay_awake(int line, struct device *dev) {
 }
 
 static void sdv_pm_relax(int line, struct device *dev) {
-    pr_err("%s: line: %d\n",__func__, line);
+    //pr_err("%s: line: %d\n",__func__, line);
     if( _wake_active ) {
         _wake_active = 0;
         pm_relax(dev);
@@ -4819,6 +4819,6 @@ static void sdv_pm_relax(int line, struct device *dev) {
 }
 
 static void sdv_pm_wakeup_event(int line, struct device *dev, int timeout) {
-    pr_err("%s: line: %d, timeout:%d\n",__func__, line, timeout);
+    //pr_err("%s: line: %d, timeout:%d\n",__func__, line, timeout);
     pm_wakeup_event(dev,timeout);
 }

@@ -1874,14 +1874,14 @@ static int cnss_wlan_runtime_suspend(struct device *dev)
 		return -EAGAIN;
 	}
 
-	pr_debug("cnss: runtime suspend start\n");
+	//pr_debug("cnss: runtime suspend start\n");
 
 	wdrv = penv->driver;
 
 	if (wdrv && wdrv->runtime_ops && wdrv->runtime_ops->runtime_suspend)
 		ret = wdrv->runtime_ops->runtime_suspend(to_pci_dev(dev));
 
-	pr_info("cnss: runtime suspend status: %d\n", ret);
+	//pr_info("cnss: runtime suspend status: %d\n", ret);
 
 	return ret;
 
@@ -1900,21 +1900,21 @@ static int cnss_wlan_runtime_resume(struct device *dev)
 		return -EAGAIN;
 	}
 
-	pr_debug("cnss: runtime resume start\n");
+	//pr_debug("cnss: runtime resume start\n");
 
 	wdrv = penv->driver;
 
 	if (wdrv && wdrv->runtime_ops && wdrv->runtime_ops->runtime_resume)
 		ret = wdrv->runtime_ops->runtime_resume(to_pci_dev(dev));
 
-	pr_info("cnss: runtime resume status: %d\n", ret);
+	//pr_info("cnss: runtime resume status: %d\n", ret);
 
 	return ret;
 }
 
 static int cnss_wlan_runtime_idle(struct device *dev)
 {
-	pr_debug("cnss: runtime idle\n");
+	//pr_debug("cnss: runtime idle\n");
 
 	pm_request_autosuspend(dev);
 
