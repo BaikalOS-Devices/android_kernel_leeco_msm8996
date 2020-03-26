@@ -536,9 +536,6 @@ static int tz_handler(struct devfreq *devfreq, unsigned int event, void *data)
 					profile);
 	BUG_ON(devfreq == NULL);
 
-    if( devfreq == 0 ) return result;
-	mutex_lock(&devfreq->lock);
-
 	switch (event) {
 	case DEVFREQ_GOV_START:
 		result = tz_start(devfreq);
@@ -594,8 +591,6 @@ static int tz_handler(struct devfreq *devfreq, unsigned int event, void *data)
 					&gpu_profile->partner_resume_event_ws);
 			break;
 		}
-
-	mutex_unlock(&devfreq->lock);
 
 	return result;
 }

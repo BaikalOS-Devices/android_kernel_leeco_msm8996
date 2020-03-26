@@ -767,9 +767,6 @@ static int devfreq_bw_hwmon_ev_handler(struct devfreq *df,
 	struct hwmon_node *node;
 	struct bw_hwmon *hw;
 
-    if( df == 0 ) return ret;
-	mutex_lock(&df->lock);
-
 	switch (event) {
 	case DEVFREQ_GOV_START:
 		sample_ms = df->profile->polling_ms;
@@ -830,8 +827,6 @@ static int devfreq_bw_hwmon_ev_handler(struct devfreq *df,
 		}
 		break;
 	}
-
-	mutex_unlock(&df->lock);
 
 	return ret;
 }

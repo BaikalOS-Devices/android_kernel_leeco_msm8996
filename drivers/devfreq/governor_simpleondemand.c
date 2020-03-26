@@ -110,7 +110,6 @@ static int devfreq_simple_ondemand_handler(struct devfreq *devfreq,
 {
 
     if( devfreq == 0 ) return 0;
-	mutex_lock(&devfreq->lock);
 
 	switch (event) {
 	case DEVFREQ_GOV_START:
@@ -137,7 +136,6 @@ static int devfreq_simple_ondemand_handler(struct devfreq *devfreq,
 		break;
 	}
 
-	mutex_unlock(&devfreq->lock);
 	return 0;
 }
 
