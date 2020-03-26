@@ -708,84 +708,6 @@ adreno_ringbuffer_issuecmds(struct adreno_ringbuffer *rb,
 		sizedwords, 0, NULL);
 }
 
-/**
- * _ringbuffer_verify_ib() - Check if an IB's size is within a permitted limit
- * @device: The kgsl device pointer
- * @ibdesc: Pointer to the IB descriptor
- */
-static inline bool _ringbuffer_verify_ib(struct kgsl_device_private *dev_priv,
-		struct kgsl_context *context, struct kgsl_memobj_node *ib)
-{
-	struct kgsl_device *device = dev_priv->device;
-	struct kgsl_process_private *private = dev_priv->process_priv;
-
-	/* The maximum allowable size for an IB in the CP is 0xFFFFF dwords */
-	if (ib->size == 0 || ((ib->size >> 2) > 0xFFFFF)) {
-		pr_context(device, context, "ctxt %d invalid ib size %lld\n",
-			context->id, ib->size);
-		return false;
-	}
-
-	/* Make sure that the address is mapped */
-	if (!kgsl_mmu_gpuaddr_in_range(private->pagetable, ib->gpuaddr)) {
-		pr_context(device, context, "ctxt %d invalid ib gpuaddr %llX\n",
-			context->id, ib->gpuaddr);
-		return false;
-	}
-
-	return true;
-}
-
-int
-adreno_ringbuffer_issueibcmds(struct kgsl_device_private *dev_priv,
-				struct kgsl_context *context,
-				struct kgsl_drawobj *drawobj,
-				uint32_t *timestamp)
-{
-	struct kgsl_device *device = dev_priv->device;
-	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
-	struct adreno_context *drawctxt = ADRENO_CONTEXT(context);
-	struct kgsl_memobj_node *ib;
-	int ret;
-
-	if (kgsl_context_invalid(context))
-		return -EDEADLK;
-
-	/* Verify the IBs before they get queued */
-	list_for_each_entry(ib, &drawobj->cmdlist, node)
-		if (_ringbuffer_verify_ib(dev_priv, context, ib) == false)
-			return -EINVAL;
-
-	/* wait for the suspend gate */
-	wait_for_completion(&device->halt_gate);
-
-	/*
-	 * Clear the wake on touch bit to indicate an IB has been
-	 * submitted since the last time we set it. But only clear
-	 * it when we have rendering commands.
-	 */
-	if (!(cmdbatch->flags & KGSL_CMDBATCH_MARKER)
-		&& !(cmdbatch->flags & KGSL_CMDBATCH_SYNC))
-		device->flags &= ~KGSL_FLAG_WAKE_ON_TOUCH;
-
-	/* A3XX does not have support for command batch profiling */
-	if (adreno_is_a3xx(adreno_dev) &&
-			(drawobj->flags & KGSL_DRAWOBJ_PROFILING))
-		return -EOPNOTSUPP;
-
-	/* Queue the command in the ringbuffer */
-	ret = adreno_dispatcher_queue_cmd(adreno_dev, drawctxt, drawobj,
-		timestamp);
-
-	/*
-	 * Return -EPROTO if the device has faulted since the last time we
-	 * checked - userspace uses this to perform post-fault activities
-	 */
-	if (!ret && test_and_clear_bit(ADRENO_CONTEXT_FAULT, &context->priv))
-		ret = -EPROTO;
-
-	return ret;
-}
 
 static void adreno_ringbuffer_set_constraint(struct kgsl_device *device,
 			struct kgsl_drawobj *drawobj)
@@ -825,37 +747,6 @@ static inline int _get_alwayson_counter(struct adreno_device *adreno_dev,
 	p += cp_gpuaddr(adreno_dev, p, gpuaddr);
 
 	return (unsigned int)(p - cmds);
-}
-
-/* This is the maximum possible size for 64 bit targets */
-#define PROFILE_IB_DWORDS 4
-#define PROFILE_IB_SLOTS (PAGE_SIZE / (PROFILE_IB_DWORDS << 2))
-
-static int set_user_profiling(struct adreno_device *adreno_dev,
-		struct adreno_ringbuffer *rb, u32 *cmds, u64 gpuaddr)
-{
-	int dwords, index = 0;
-	u64 ib_gpuaddr;
-	u32 *ib;
-
-	if (!rb->profile_desc.hostptr)
-		return 0;
-
-	ib = ((u32 *) rb->profile_desc.hostptr) +
-		(rb->profile_index * PROFILE_IB_DWORDS);
-	ib_gpuaddr = rb->profile_desc.gpuaddr +
-		(rb->profile_index * (PROFILE_IB_DWORDS << 2));
-
-	dwords = _get_alwayson_counter(adreno_dev, ib, gpuaddr);
-
-	/* Make an indirect buffer for the request */
-	cmds[index++] = cp_mem_packet(adreno_dev, CP_INDIRECT_BUFFER_PFE, 2, 1);
-	index += cp_gpuaddr(adreno_dev, &cmds[index], ib_gpuaddr);
-	cmds[index++] = dwords;
-
-	rb->profile_index = (rb->profile_index + 1) % PROFILE_IB_SLOTS;
-
-	return index;
 }
 
 /* adreno_rindbuffer_submitcmd - submit userspace IBs to the GPU */

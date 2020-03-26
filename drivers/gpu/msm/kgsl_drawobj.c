@@ -174,9 +174,6 @@ static void syncobj_timer(unsigned long data)
 /*
  * a generic function to retire a pending sync event and (possibly)
  * kick the dispatcher
- * Returns false if the event was already marked for cancellation in another
- * thread. This function should return true if this thread is responsible for
- * freeing up the memory, and the event will not be cancelled.
  */
 static void drawobj_sync_expire(struct kgsl_device *device,
 	struct kgsl_drawobj_sync_event *event)
@@ -200,7 +197,6 @@ static void drawobj_sync_expire(struct kgsl_device *device,
 			device->ftbl->drawctxt_sched(device,
 				event->syncobj->base.context);
 	}
-	return true;
 }
 
 /*
@@ -254,11 +250,8 @@ static void drawobj_destroy_sync(struct kgsl_drawobj *drawobj)
 	for (i = 0; i < syncobj->numsyncs; i++) {
 		struct kgsl_drawobj_sync_event *event = &syncobj->synclist[i];
 
-		/* Don't do anything if the event has already expired.
-		 * If this thread clears the pending bit mask then it is
-		 * responsible for doing context put.
-		 */
-		if (!test_and_clear_bit(i, &cmdbatch->pending))
+		/* Don't do anything if the event has already expired */
+		if (!test_and_clear_bit(i, &pending))
 			continue;
 
 		switch (event->type) {
