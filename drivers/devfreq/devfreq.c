@@ -195,10 +195,21 @@ int update_devfreq(struct devfreq *devfreq)
 	if (!devfreq->governor)
 		return -EINVAL;
 
-	/* Reevaluate the proper frequency */
-	err = devfreq->governor->get_target_freq(devfreq, &freq, &flags);
-	if (err)
-		return err;
+	if (devfreq->max_boost) {
+		/* Use the max freq for max boosts */
+		freq = ULONG_MAX;
+	} else if( devfreq->boost_freq ) {
+		if( devfreq->boost_freq > devfreq->previous_freq ) {
+			freq = devfreq->boost_freq;
+		} else {
+			freq = devfreq->previous_freq;
+		}
+	} else {
+    	/* Reevaluate the proper frequency */
+    	err = devfreq->governor->get_target_freq(devfreq, &freq, &flags);
+	    if (err)
+		    return err;
+    }
 
 	/*
 	 * Adjust the freuqency with user freq and QoS.
@@ -934,14 +945,12 @@ static ssize_t min_freq_store(struct device *dev, struct device_attribute *attr,
 	mutex_lock(&df->lock);
 	max = df->max_freq;
 	if (value && max && value > max) {
-		ret = -EINVAL;
-		goto unlock;
+        df->max_freq = max;
 	}
 
 	df->min_freq = value;
 	update_devfreq(df);
 	ret = count;
-unlock:
 	mutex_unlock(&df->lock);
 	return ret;
 }
@@ -967,14 +976,12 @@ static ssize_t max_freq_store(struct device *dev, struct device_attribute *attr,
 	mutex_lock(&df->lock);
 	min = df->min_freq;
 	if (value && min && value < min) {
-		ret = -EINVAL;
-		goto unlock;
+        df->min_freq = value;
 	}
 
 	df->max_freq = value;
 	update_devfreq(df);
 	ret = count;
-unlock:
 	mutex_unlock(&df->lock);
 	return ret;
 }

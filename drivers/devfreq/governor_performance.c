@@ -34,10 +34,13 @@ static int devfreq_performance_handler(struct devfreq *devfreq,
 	int ret = 0;
 	unsigned long freq;
 
+    if( devfreq == 0 ) return ret;
 	mutex_lock(&devfreq->lock);
+
 	freq = devfreq->previous_freq;
 	switch (event) {
 	case DEVFREQ_GOV_START:
+        if( devfreq->profile == 0 || devfreq->profile->target == 0 ) goto quit;
 		devfreq->profile->target(devfreq->dev.parent,
 				&freq,
 				DEVFREQ_FLAG_WAKEUP_MAXFREQ);
@@ -46,11 +49,13 @@ static int devfreq_performance_handler(struct devfreq *devfreq,
 		ret = update_devfreq(devfreq);
 		break;
 	case DEVFREQ_GOV_SUSPEND:
+        if( devfreq->profile == 0 || devfreq->profile->target == 0 ) goto quit;
 		devfreq->profile->target(devfreq->dev.parent,
 				&freq,
 				DEVFREQ_FLAG_WAKEUP_MAXFREQ);
 		break;
 	}
+quit:
 	mutex_unlock(&devfreq->lock);
 	return ret;
 }

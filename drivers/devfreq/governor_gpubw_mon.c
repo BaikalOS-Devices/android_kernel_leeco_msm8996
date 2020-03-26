@@ -208,8 +208,7 @@ static int devfreq_gpubw_event_handler(struct devfreq *devfreq,
 		result = gpubw_stop(devfreq);
 		break;
 	case DEVFREQ_GOV_RESUME:
-		/* TODO ..... */
-		/* ret = update_devfreq(devfreq); */
+		result = update_devfreq(devfreq);
 		break;
 	case DEVFREQ_GOV_SUSPEND:
 		{

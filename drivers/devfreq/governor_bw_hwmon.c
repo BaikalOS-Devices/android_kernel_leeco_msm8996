@@ -762,10 +762,13 @@ static struct attribute_group dev_attr_group = {
 static int devfreq_bw_hwmon_ev_handler(struct devfreq *df,
 					unsigned int event, void *data)
 {
-	int ret;
+	int ret = 0;
 	unsigned int sample_ms;
 	struct hwmon_node *node;
 	struct bw_hwmon *hw;
+
+    if( df == 0 ) return ret;
+	mutex_lock(&df->lock);
 
 	switch (event) {
 	case DEVFREQ_GOV_START:
@@ -806,7 +809,6 @@ static int devfreq_bw_hwmon_ev_handler(struct devfreq *df,
 		if (ret) {
 			dev_err(df->dev.parent,
 				"Unable to resume HW monitor (%d)\n", ret);
-			return ret;
 		}
 		break;
 
@@ -816,10 +818,7 @@ static int devfreq_bw_hwmon_ev_handler(struct devfreq *df,
 			dev_err(df->dev.parent,
 				"Unable to suspend BW HW mon governor (%d)\n",
 				ret);
-			return ret;
 		}
-
-		dev_dbg(df->dev.parent, "Suspended BW HW mon governor\n");
 		break;
 
 	case DEVFREQ_GOV_RESUME:
@@ -828,14 +827,13 @@ static int devfreq_bw_hwmon_ev_handler(struct devfreq *df,
 			dev_err(df->dev.parent,
 				"Unable to resume BW HW mon governor (%d)\n",
 				ret);
-			return ret;
 		}
-
-		dev_dbg(df->dev.parent, "Resumed BW HW mon governor\n");
 		break;
 	}
 
-	return 0;
+	mutex_unlock(&df->lock);
+
+	return ret;
 }
 
 static struct devfreq_governor devfreq_gov_bw_hwmon = {

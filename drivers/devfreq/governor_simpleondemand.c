@@ -108,6 +108,10 @@ static int devfreq_simple_ondemand_func(struct devfreq *df,
 static int devfreq_simple_ondemand_handler(struct devfreq *devfreq,
 				unsigned int event, void *data)
 {
+
+    if( devfreq == 0 ) return 0;
+	mutex_lock(&devfreq->lock);
+
 	switch (event) {
 	case DEVFREQ_GOV_START:
 		devfreq_monitor_start(devfreq);
@@ -133,6 +137,7 @@ static int devfreq_simple_ondemand_handler(struct devfreq *devfreq,
 		break;
 	}
 
+	mutex_unlock(&devfreq->lock);
 	return 0;
 }
 

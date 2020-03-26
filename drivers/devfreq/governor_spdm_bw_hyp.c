@@ -155,6 +155,8 @@ static int gov_spdm_hyp_eh(struct devfreq *devfreq, unsigned int event,
 	struct spdm_data *spdm_data = (struct spdm_data *)devfreq->data;
 	int i;
 
+    if( devfreq == 0 ) return 0;
+
 	switch (event) {
 	case DEVFREQ_GOV_START:
 		mutex_lock(&devfreqs_lock);
@@ -304,11 +306,15 @@ static int gov_spdm_hyp_eh(struct devfreq *devfreq, unsigned int event,
 			return -EINVAL;
 		}
 		spdm_data->enabled = true;
+	    mutex_lock(&devfreq->lock);
 		devfreq_monitor_start(devfreq);
+	    mutex_unlock(&devfreq->lock);
 		break;
 
 	case DEVFREQ_GOV_STOP:
+	    mutex_lock(&devfreq->lock);
 		devfreq_monitor_stop(devfreq);
+	    mutex_unlock(&devfreq->lock);
 		/* find devfreq in list and remove it */
 		mutex_lock(&devfreqs_lock);
 		list_del(&spdm_data->list);
@@ -325,15 +331,21 @@ static int gov_spdm_hyp_eh(struct devfreq *devfreq, unsigned int event,
 		break;
 
 	case DEVFREQ_GOV_INTERVAL:
+	    mutex_lock(&devfreq->lock);
 		devfreq_interval_update(devfreq, (unsigned int *)data);
+	    mutex_unlock(&devfreq->lock);
 		break;
 
 	case DEVFREQ_GOV_SUSPEND:
+	    mutex_lock(&devfreq->lock);
 		devfreq_monitor_suspend(devfreq);
+	    mutex_unlock(&devfreq->lock);
 		break;
 
 	case DEVFREQ_GOV_RESUME:
+	    mutex_lock(&devfreq->lock);
 		devfreq_monitor_resume(devfreq);
+	    mutex_unlock(&devfreq->lock);
 		break;
 
 	default:
