@@ -1709,6 +1709,8 @@ static irqreturn_t synaptics_rmi4_irq(int irq, void *data)
 	if (gpio_get_value(bdata->irq_gpio) != bdata->irq_on_state)
 		goto exit;
 
+    pm_wakeup_event(&rmi4_data->pdev->dev,150);
+
 	synaptics_rmi4_sensor_report(rmi4_data, true);
 
 exit:
@@ -4281,6 +4283,7 @@ static int synaptics_rmi4_probe(struct platform_device *pdev)
 	mutex_init(&(rmi4_data->rmi4_exp_init_mutex));
 
 	platform_set_drvdata(pdev, rmi4_data);
+	device_init_wakeup(&pdev->dev, 1);
 
 	vir_button_map = bdata->vir_button_map;
 
@@ -4732,6 +4735,7 @@ static int synaptics_rmi4_fb_notifier_cb(struct notifier_block *self,
 				synaptics_rmi4_suspend(&rmi4_data->pdev->dev);
 				rmi4_data->fb_ready = false;
 			} else if (*transition == FB_BLANK_UNBLANK) {
+                pm_wakeup_event(&rmi4_data->pdev->dev,150);
 				schedule_work(&rmi4_data->fb_notify_work);
 			}
 		}
@@ -4895,6 +4899,8 @@ static int synaptics_rmi4_suspend(struct device *dev)
 	int retval;
 #endif
 
+    dev_err(rmi4_data->pdev->dev.parent,"suspend called\n");
+
 	if (rmi4_data->stay_awake)
 		return 0;
 #ifdef ESD_CHECK_SUPPORT
@@ -4949,6 +4955,8 @@ static int synaptics_rmi4_resume(struct device *dev)
 	struct synaptics_rmi4_data *rmi4_data = dev_get_drvdata(dev);
 	const struct synaptics_dsx_board_data *bdata =
 				rmi4_data->hw_if->board_data;
+
+    dev_err(rmi4_data->pdev->dev.parent,"resume called\n");
 
 	if (rmi4_data->stay_awake)
 		return 0;
