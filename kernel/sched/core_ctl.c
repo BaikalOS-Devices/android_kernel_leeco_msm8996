@@ -770,7 +770,10 @@ static void __ref do_hotplug(struct cpu_data *f)
 			if (c->is_busy)
 				continue;
 
-			pr_debug("Trying to Offline CPU%u\n", c->cpu);
+            if (c->cpu == 0 && f->first_cpu == 0) 
+                continue;
+
+			//pr_debug("Trying to Offline CPU%u\n", c->cpu);
 			if (core_ctl_offline_core(c->cpu))
 				pr_debug("Unable to Offline CPU%u\n", c->cpu);
 		}
@@ -786,10 +789,13 @@ static void __ref do_hotplug(struct cpu_data *f)
 			if (!c->online)
 				continue;
 
+            if (c->cpu == 0 && f->first_cpu == 0) 
+                continue;
+
 			if (f->online_cpus <= f->max_cpus)
 				break;
 
-			pr_debug("Trying to Offline CPU%u\n", c->cpu);
+			//pr_debug("Trying to Offline CPU%u\n", c->cpu);
 			if (core_ctl_offline_core(c->cpu))
 				pr_debug("Unable to Offline CPU%u\n", c->cpu);
 		}
@@ -800,7 +806,7 @@ static void __ref do_hotplug(struct cpu_data *f)
 			if (f->online_cpus == need)
 				break;
 
-			pr_debug("Trying to Online CPU%u\n", c->cpu);
+			//pr_debug("Trying to Online CPU%u\n", c->cpu);
 			if (core_ctl_online_core(c->cpu))
 				pr_debug("Unable to Online CPU%u\n", c->cpu);
 		}
@@ -815,7 +821,7 @@ static void __ref do_hotplug(struct cpu_data *f)
 			if (f->online_cpus == need)
 				break;
 
-			pr_debug("Trying to Online CPU%u\n", c->cpu);
+			//pr_debug("Trying to Online CPU%u\n", c->cpu);
 			if (core_ctl_online_core(c->cpu))
 				pr_debug("Unable to Online CPU%u\n", c->cpu);
 		}
