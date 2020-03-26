@@ -1305,12 +1305,14 @@ static void wcd_correct_swch_plug(struct work_struct *work)
 		if (!btn_result && !hs_comp_res)
 			plug_type = MBHC_PLUG_TYPE_HEADSET;
 		else if (!btn_result && hs_comp_res)
-			plug_type = MBHC_PLUG_TYPE_HIGH_HPH;
+			plug_type = MBHC_PLUG_TYPE_HEADSET;
 		else
 			plug_type = MBHC_PLUG_TYPE_INVALID;
 	} else {
 		if (!btn_result && !hs_comp_res)
 			plug_type = MBHC_PLUG_TYPE_HEADPHONE;
+        else if (!btn_result && hs_comp_res)
+			plug_type = MBHC_PLUG_TYPE_HEADSET;
 		else
 			plug_type = MBHC_PLUG_TYPE_INVALID;
 	}
@@ -1337,7 +1339,8 @@ static void wcd_correct_swch_plug(struct work_struct *work)
 	     /* Treat hs_comp_res as a valid plug. */
 	     plug_type == MBHC_PLUG_TYPE_HIGH_HPH) &&
 #else
-	     plug_type == MBHC_PLUG_TYPE_HEADPHONE) &&
+         plug_type == MBHC_PLUG_TYPE_HIGH_HPH || 
+         plug_type == MBHC_PLUG_TYPE_HEADPHONE) &&
 #endif
 	    (!wcd_swch_level_remove(mbhc))) {
 		WCD_MBHC_RSC_LOCK(mbhc);
