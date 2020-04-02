@@ -362,8 +362,8 @@ static void update_cpu_power(unsigned int cpu)
 
 	set_power_scale(cpu, cpu_capacity(cpu) / middle_capacity);
 
-	pr_info("CPU%u: update cpu_power %lu\n",
-		cpu, arch_scale_freq_power(NULL, cpu));
+	//pr_info("CPU%u: update cpu_power %lu\n",
+	//	cpu, arch_scale_freq_power(NULL, cpu));
 }
 
 /*
@@ -429,9 +429,9 @@ void store_cpu_topology(unsigned int cpuid)
 		cpuid_topo->cluster_id = MPIDR_AFFINITY_LEVEL(mpidr, 1);
 	}
 
-	pr_debug("CPU%u: cluster %d core %d thread %d mpidr %#016llx\n",
-		 cpuid, cpuid_topo->cluster_id, cpuid_topo->core_id,
-		 cpuid_topo->thread_id, mpidr);
+	//pr_debug("CPU%u: cluster %d core %d thread %d mpidr %#016llx\n",
+	//	 cpuid, cpuid_topo->cluster_id, cpuid_topo->core_id,
+	//	 cpuid_topo->thread_id, mpidr);
 
 topology_populated:
 	update_siblings_masks(cpuid);
