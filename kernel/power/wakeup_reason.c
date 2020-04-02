@@ -352,8 +352,10 @@ log_possible_wakeup_reason_start(int irq, struct irq_desc *desc, unsigned depth)
 	 * from a thread context.  If this happens, just exit silently, as we are no
 	 * longer interested in logging interrupts.
 	 */
-	if (!logging_wakeup_reasons())
+	if (!logging_wakeup_reasons()) {
+		pr_warning("%s: wakeup irq logging disabled\n", __func__);
 		return NULL;
+    }
 
 	/* If suspend was aborted, the base IRQ nodes are missing, and we stop
 	 * logging interrupts immediately.
@@ -366,6 +368,7 @@ log_possible_wakeup_reason_start(int irq, struct irq_desc *desc, unsigned depth)
 	/* We assume wakeup interrupts are handlerd only by the first core. */
 	/* TODO: relax this by having percpu versions of the irq tree */
 	if (smp_processor_id() != 0) {
+		pr_warning("%s: wakeup irq on non-boot CPU\n", __func__);
 		return NULL;
 	}
 

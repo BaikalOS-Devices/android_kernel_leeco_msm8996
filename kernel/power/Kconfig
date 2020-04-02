@@ -316,7 +316,7 @@ config PM_GENERIC_DOMAINS_OF
 	depends on PM_GENERIC_DOMAINS && OF
 
 config CPU_PM
-	bool
+	bool 
 	depends on SUSPEND || CPU_IDLE
 
 config SUSPEND_TIME
@@ -327,7 +327,7 @@ config SUSPEND_TIME
 	  /sys/kernel/debug/suspend_time
 
 config DEDUCE_WAKEUP_REASONS
-	bool
+	bool "Log suspend reasons"
 	default n
 
 config PM_SYNC_BEFORE_SUSPEND
