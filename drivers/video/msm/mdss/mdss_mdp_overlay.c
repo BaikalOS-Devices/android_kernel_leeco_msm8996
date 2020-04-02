@@ -39,7 +39,7 @@
 #include "mdss_mdp_wfd.h"
 #include "mdss_dsi_clk.h"
 
-#define VSYNC_PERIOD 16
+//#define VSYNC_PERIOD 16
 #define BORDERFILL_NDX	0x0BF000BF
 #define CHECK_BOUNDS(offset, size, max_size) \
 	(((size) > (max_size)) || ((offset) > ((max_size) - (size))))
@@ -2867,11 +2867,15 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd,
 	if (!ctl || !ctl->mixer_left)
 		return -ENODEV;
 
+	pr_err("mdss_mdp_overlay_kickoff:begin\n");
+
 	ATRACE_BEGIN(__func__);
 	if (ctl->shared_lock) {
 		mdss_mdp_ctl_notify(ctl, MDP_NOTIFY_FRAME_BEGIN);
 		mutex_lock(ctl->shared_lock);
 	}
+
+	pr_err("mdss_mdp_overlay_kickoff:start\n");
 
 	mutex_lock(&mdp5_data->ov_lock);
 	ctl->bw_pending = 0;
@@ -2883,6 +2887,8 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd,
 			mutex_unlock(ctl->shared_lock);
 		return ret;
 	}
+
+	pr_err("mdss_mdp_overlay_kickoff:attach\n");
 
 	ret = mdss_iommu_ctrl(1);
 	if (IS_ERR_VALUE(ret)) {
@@ -2899,8 +2905,12 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd,
 
 	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON);
 
+	pr_err("mdss_mdp_overlay_kickoff:check\n");
+
 	mdss_mdp_check_ctl_reset_status(ctl);
 	__validate_and_set_roi(mfd, data);
+
+	pr_err("mdss_mdp_overlay_kickoff:wait1\n");
 
 	if (ctl->ops.wait_pingpong && mdp5_data->mdata->serialize_wait4pp)
 		mdss_mdp_display_wait4pingpong(ctl, true);
@@ -2925,9 +2935,13 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd,
 		list_move(&pipe->list, &mdp5_data->pipes_destroy);
 	}
 
+	pr_err("mdss_mdp_overlay_kickoff:pre_programming\n");
+
 	/* call this function before any registers programming */
 	if (ctl->ops.pre_programming)
 		ctl->ops.pre_programming(ctl);
+
+	pr_err("mdss_mdp_overlay_kickoff:sspp_programming\n");
 
 	ATRACE_BEGIN("sspp_programming");
 	ret = __overlay_queue_pipes(mfd);
@@ -2936,16 +2950,21 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd,
 
 	mdp5_data->kickoff_released = false;
 
+	pr_err("mdss_mdp_overlay_kickoff:mdss_mdp_overlay_update_frc\n");
+
 	if (mdp5_data->frc_fsm->enable)
 		mdss_mdp_overlay_update_frc(mfd);
 
+
 	if (mfd->panel.type == WRITEBACK_PANEL) {
+    	pr_err("mdss_mdp_overlay_kickoff:wb_kickoff\n");
 		ATRACE_BEGIN("wb_kickoff");
 		commit_cb.commit_cb_fnc = mdss_mdp_commit_cb;
 		commit_cb.data = mfd;
 		ret = mdss_mdp_wfd_kickoff(mdp5_data->wfd, &commit_cb);
 		ATRACE_END("wb_kickoff");
 	} else {
+    	pr_err("mdss_mdp_overlay_kickoff:display_commit\n");
 		ATRACE_BEGIN("display_commit");
 		commit_cb.commit_cb_fnc = mdss_mdp_commit_cb;
 		commit_cb.data = mfd;
@@ -2962,6 +2981,8 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd,
 	 */
 	mfd->atomic_commit_pending = false;
 
+    pr_err("mdss_mdp_overlay_kickoff:MDP_NOTIFY_FRAME_CTX_DONE\n");
+
 	if (!mdp5_data->kickoff_released)
 		mdss_mdp_ctl_notify(ctl, MDP_NOTIFY_FRAME_CTX_DONE);
 
@@ -2970,6 +2991,8 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd,
 
 	mutex_unlock(&mdp5_data->ov_lock);
 	mdss_mdp_overlay_update_pm(mdp5_data);
+
+    pr_err("mdss_mdp_overlay_kickoff:display_wait4comp\n");
 
 	ATRACE_BEGIN("display_wait4comp");
 	ret = mdss_mdp_display_wait4comp(mdp5_data->ctl);
@@ -2983,6 +3006,9 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd,
 	 * bit are set within the same vsync period
 	 * regardless of  mdp revision.
 	 */
+
+    pr_err("mdss_mdp_overlay_kickoff:fps_update\n");
+
 	ATRACE_BEGIN("fps_update");
 	ret = mdss_mdp_ctl_update_fps(ctl);
 	ATRACE_END("fps_update");
@@ -3006,6 +3032,9 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd,
 
 	mdss_fb_update_notify_update(mfd);
 commit_fail:
+
+    pr_err("mdss_mdp_overlay_kickoff:overlay_cleanup\n");
+
 	ATRACE_BEGIN("overlay_cleanup");
 	mdss_mdp_overlay_cleanup(mfd, &mdp5_data->pipes_destroy);
 	ATRACE_END("overlay_cleanup");
@@ -3019,6 +3048,8 @@ commit_fail:
 		mutex_unlock(ctl->shared_lock);
 	mdss_iommu_ctrl(0);
 	ATRACE_END(__func__);
+
+    pr_err("mdss_mdp_overlay_kickoff:end\n");
 
 	return ret;
 }
@@ -3558,6 +3589,8 @@ static void mdss_mdp_overlay_handle_vsync(struct mdss_mdp_ctl *ctl,
 	struct msm_fb_data_type *mfd = NULL;
 	struct mdss_overlay_private *mdp5_data = NULL;
 
+    dump_stack();
+
 	if (!ctl) {
 		pr_err("ctl is NULL\n");
 		return;
@@ -3575,7 +3608,7 @@ static void mdss_mdp_overlay_handle_vsync(struct mdss_mdp_ctl *ctl,
 		return;
 	}
 
-	pr_debug("vsync on fb%d play_cnt=%d\n", mfd->index, ctl->play_cnt);
+	pr_info("vsync on fb%d play_cnt=%d\n", mfd->index, ctl->play_cnt);
 
 	mdp5_data->vsync_time = t;
 	sysfs_notify_dirent(mdp5_data->vsync_event_sd);
@@ -3936,6 +3969,7 @@ static struct attribute *dynamic_fps_fs_attrs[] = {
 static struct attribute_group dynamic_fps_fs_attrs_group = {
 	.attrs = dynamic_fps_fs_attrs,
 };
+
 
 static ssize_t mdss_mdp_vsync_show_event(struct device *dev,
 		struct device_attribute *attr, char *buf)

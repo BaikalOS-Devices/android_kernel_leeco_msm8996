@@ -1764,7 +1764,7 @@ static irqreturn_t test_hw_vsync_handler(int irq, void *data)
 {
 	struct mdss_panel_data *pdata = (struct mdss_panel_data *)data;
 
-	pr_debug("HW VSYNC\n");
+	pr_err("HW VSYNC\n");
 	MDSS_XLOG(0xaaa, irq);
 	complete_all(&pdata->te_done);
 	if (pdata->next)

@@ -1653,6 +1653,7 @@ static void mdss_panel_parse_te_params(struct device_node *np,
 	te->sync_threshold_continue = (!rc ? tmp : 4);
 	rc = of_property_read_u32(np, "qcom,mdss-tear-check-frame-rate", &tmp);
 	te->refx100 = (!rc ? tmp : 6000);
+    pr_err("%s:%d, qcom,mdss-tear-check-frame-rate = %d\n",	__func__, __LINE__, te->refx100);
 	rc = of_property_read_u32
 		(np, "qcom,mdss-tear-check-start-pos", &tmp);
 	te->start_pos = (!rc ? tmp : timing->yres);
@@ -2819,6 +2820,9 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	else
 		pinfo->mipi.hw_vsync_mode = of_property_read_bool(np,
 			"qcom,mdss-dsi-te-using-te-pin");
+
+
+    pr_err("%s:%d, hw_vsync_mode = %d\n",	__func__, __LINE__, pinfo->mipi.hw_vsync_mode);
 
 	rc = of_property_read_u32(np,
 		"qcom,mdss-dsi-h-sync-pulse", &tmp);

@@ -1542,8 +1542,12 @@ static struct rcg_clk hdmi_clk_src = {
 	},
 };
 
+//	F_MM(  19200000,      mmsscc_xo,    1,    0,     0),
+// VDD_DIG_FMAX_MAP2(LOWER, 19200000, NOMINAL, 28800000),
+
+
 static struct clk_freq_tbl ftbl_vsync_clk_src[] = {
-	F_MM(  19200000,      mmsscc_xo,    1,    0,     0),
+	F_MM(  28800000,  mmsscc_gpll0_div,  10.5,    0,     0),
 	F_END
 };
 
@@ -1556,7 +1560,7 @@ static struct rcg_clk vsync_clk_src = {
 	.c = {
 		.dbg_name = "vsync_clk_src",
 		.ops = &clk_ops_rcg,
-		VDD_DIG_FMAX_MAP1(LOWER, 19200000),
+		VDD_DIG_FMAX_MAP1(LOWER, 28800000),
 		CLK_INIT(vsync_clk_src.c),
 	},
 };

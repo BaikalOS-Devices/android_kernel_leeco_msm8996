@@ -294,7 +294,7 @@ static int mdss_mdp_cmd_tearcheck_cfg(struct mdss_mdp_mixer *mixer,
 
 	cfg |= vclks_line;
 
-	pr_debug("%s: yres=%d vclks=%x height=%d init=%d rd=%d start=%d wr=%d\n",
+	pr_err("%s: yres=%d vclks=%x height=%d init=%d rd=%d start=%d wr=%d\n",
 		__func__, pinfo->yres, vclks_line, te->sync_cfg_height,
 		te->vsync_init_val, te->rd_ptr_irq, te->start_pos,
 		te->wr_ptr_irq);
@@ -368,6 +368,7 @@ static int mdss_mdp_cmd_tearcheck_setup(struct mdss_mdp_cmd_ctx *ctx,
 				MDSS_MDP_REG_PP_AUTOREFRESH_CONFIG, 0x0);
 			pr_debug("%s: disabling auto refresh\n", __func__);
 		}
+        pr_err("%s: mdss_mdp_cmd_tearcheck_cfg 1\n", __func__);
 		rc = mdss_mdp_cmd_tearcheck_cfg(mixer, ctx, locked);
 		if (rc)
 			goto err;
@@ -382,8 +383,10 @@ static int mdss_mdp_cmd_tearcheck_setup(struct mdss_mdp_cmd_ctx *ctx,
 	    is_dual_lm_single_display(ctl->mfd)) {
 
 		mixer = mdss_mdp_mixer_get(ctl, MDSS_MDP_MIXER_MUX_RIGHT);
-		if (mixer)
+		if (mixer) {
+            pr_err("%s: mdss_mdp_cmd_tearcheck_cfg 2\n", __func__);
 			rc = mdss_mdp_cmd_tearcheck_cfg(mixer, ctx, locked);
+        }
 	}
 err:
 	return rc;
@@ -1006,8 +1009,11 @@ static void mdss_mdp_cmd_readptr_done(void *arg)
 
 	spin_lock(&ctx->clk_lock);
 	list_for_each_entry(tmp, &ctx->vsync_handlers, list) {
-		if (tmp->enabled && !tmp->cmd_post_flush)
+		if (tmp->enabled && !tmp->cmd_post_flush) {
 			tmp->vsync_handler(ctl, vsync_time);
+        } else {
+            pr_warn("mdss_mdp_cmd_readptr_done: enabled=%d, cmd_post_flush=%d\n",tmp->enabled, tmp->cmd_post_flush);
+        }
 	}
 	spin_unlock(&ctx->clk_lock);
 }

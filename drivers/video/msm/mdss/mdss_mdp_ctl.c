@@ -5554,8 +5554,10 @@ int mdss_mdp_display_commit(struct mdss_mdp_ctl *ctl, void *arg,
 
 	ATRACE_END("frame_ready");
 
-	if (ctl->ops.wait_pingpong && !mdata->serialize_wait4pp)
+	if (ctl->ops.wait_pingpong && !mdata->serialize_wait4pp) {
+    	pr_info("mdss_mdp_display_wait4pingpong\n");
 		mdss_mdp_display_wait4pingpong(ctl, false);
+    }
 
 	/* Moved pp programming to post ping pong */
 	if (!ctl->is_video_mode && ctl->mfd &&
@@ -5700,6 +5702,9 @@ int mdss_mdp_display_commit(struct mdss_mdp_ctl *ctl, void *arg,
 		pr_warn("ctl %d error displaying frame\n", ctl->num);
 
 	ctl->play_cnt++;
+
+	pr_info("kick off play_cnt=%d\n", ctl->play_cnt);
+
 	ATRACE_END("flush_kickoff");
 
 done:

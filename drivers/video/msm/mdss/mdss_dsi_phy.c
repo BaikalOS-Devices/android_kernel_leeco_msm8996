@@ -76,7 +76,7 @@ static int  mdss_dsi_phy_common_validate_and_set(struct timing_entry *te,
 		pr_err("Incorrect %s calculations - %d\n", te_name, te->rec);
 		return -EINVAL;
 	}
-	pr_debug("%s program value=%d\n", te_name, te->rec);
+	pr_err("%s program value=%d\n", te_name, te->rec);
 	te->program_value = te->rec;
 	return 0;
 }
@@ -129,7 +129,7 @@ static int mdss_dsi_phy_initialize_defaults(struct dsi_phy_t_clk_param *t_clk,
 				      t_clk->tlpx_numer_ns)) - 2;
 	}
 
-	pr_debug("clk_prepare: min=%d, max=%d\n", t_param->clk_prepare.rec_min,
+	pr_err("clk_prepare: min=%d, max=%d\n", t_param->clk_prepare.rec_min,
 			t_param->clk_prepare.rec_max);
 
 	return 0;
@@ -182,12 +182,12 @@ static int mdss_dsi_phy_calc_param_phy_rev_2(struct dsi_phy_t_clk_param *t_clk,
 	clk_prep_actual =
 		div_s64((actual_intermediate + actual_frac), multiplier);
 
-	pr_debug("CLK PREPARE: mipi_min=%d, max=%d, rec_min=%d, rec_max=%d",
+	pr_err("CLK PREPARE: mipi_min=%d, max=%d, rec_min=%d, rec_max=%d",
 			t_param->clk_prepare.mipi_min,
 			t_param->clk_prepare.mipi_max,
 			t_param->clk_prepare.rec_min,
 			t_param->clk_prepare.rec_max);
-	pr_debug("prog value = %d, actual=%lld\n",
+	pr_err("prog value = %d, actual=%lld\n",
 			t_param->clk_prepare.rec, clk_prep_actual);
 
 	/* clk zero calculations */
@@ -218,7 +218,7 @@ static int mdss_dsi_phy_calc_param_phy_rev_2(struct dsi_phy_t_clk_param *t_clk,
 	if (rc)
 		goto error;
 
-	pr_debug("CLK ZERO: mipi_min=%d, max=%d, rec_min=%d, rec_max=%d, prog value = %d\n",
+	pr_err("CLK ZERO: mipi_min=%d, max=%d, rec_min=%d, rec_max=%d, prog value = %d\n",
 			t_param->clk_zero.mipi_min, t_param->clk_zero.mipi_max,
 			t_param->clk_zero.rec_min, t_param->clk_zero.rec_max,
 			t_param->clk_zero.rec);
@@ -263,7 +263,7 @@ static int mdss_dsi_phy_calc_param_phy_rev_2(struct dsi_phy_t_clk_param *t_clk,
 	if (rc)
 		goto error;
 
-	pr_debug("CLK TRAIL: mipi_min=%d, max=%d, rec_min=%d, rec_max=%d, prog value = %d\n",
+	pr_err("CLK TRAIL: mipi_min=%d, max=%d, rec_min=%d, rec_max=%d, prog value = %d\n",
 			t_param->clk_trail.mipi_min,
 			t_param->clk_trail.mipi_max,
 			t_param->clk_trail.rec_min,
@@ -315,7 +315,7 @@ static int mdss_dsi_phy_calc_param_phy_rev_2(struct dsi_phy_t_clk_param *t_clk,
 			t_clk->bitclk_mbps);
 	div_s64_rem(temp_multiple, multiplier, &actual_frac);
 	t_hs_prep_actual = div_s64(temp_multiple, multiplier);
-	pr_debug("HS PREPARE: mipi_min=%d, max=%d, rec_min=%d, rec_max=%d, prog value = %d, actual=%d\n",
+	pr_err("HS PREPARE: mipi_min=%d, max=%d, rec_min=%d, rec_max=%d, prog value = %d, actual=%d\n",
 			t_param->hs_prepare.mipi_min,
 			t_param->hs_prepare.mipi_max,
 			t_param->hs_prepare.rec_min,
@@ -350,7 +350,7 @@ static int mdss_dsi_phy_calc_param_phy_rev_2(struct dsi_phy_t_clk_param *t_clk,
 	if (rc)
 		goto error;
 
-	pr_debug("HS ZERO: mipi_min=%d, max=%d, rec_min=%d, rec_max=%d, prog value = %d\n",
+	pr_err("HS ZERO: mipi_min=%d, max=%d, rec_min=%d, rec_max=%d, prog value = %d\n",
 			t_param->hs_zero.mipi_min, t_param->hs_zero.mipi_max,
 			t_param->hs_zero.rec_min, t_param->hs_zero.rec_max,
 			t_param->hs_zero.rec);
@@ -377,7 +377,7 @@ static int mdss_dsi_phy_calc_param_phy_rev_2(struct dsi_phy_t_clk_param *t_clk,
 	if (rc)
 		goto error;
 
-	pr_debug("HS TRAIL: mipi_min=%d, max=%d, rec_min=%d, rec_max=%d, prog value = %d\n",
+	pr_err("HS TRAIL: mipi_min=%d, max=%d, rec_min=%d, rec_max=%d, prog value = %d\n",
 			t_param->hs_trail.mipi_min, t_param->hs_trail.mipi_max,
 			t_param->hs_trail.rec_min, t_param->hs_trail.rec_max,
 			t_param->hs_trail.rec);
@@ -391,7 +391,7 @@ static int mdss_dsi_phy_calc_param_phy_rev_2(struct dsi_phy_t_clk_param *t_clk,
 	if (rc)
 		goto error;
 
-	pr_debug("HS RQST-DATA: mipi_min=%d, max=%d, rec_min=%d, rec_max=%d, prog value = %d\n",
+	pr_err("HS RQST-DATA: mipi_min=%d, max=%d, rec_min=%d, rec_max=%d, prog value = %d\n",
 			t_param->hs_rqst.mipi_min, t_param->hs_rqst.mipi_max,
 			t_param->hs_rqst.rec_min, t_param->hs_rqst.rec_max,
 			t_param->hs_rqst.rec);
@@ -409,7 +409,7 @@ static int mdss_dsi_phy_calc_param_phy_rev_2(struct dsi_phy_t_clk_param *t_clk,
 	if (rc)
 		goto error;
 
-	pr_debug("HS EXIT: mipi_min=%d, max=%d, rec_min=%d, rec_max=%d, prog value = %d\n",
+	pr_err("HS EXIT: mipi_min=%d, max=%d, rec_min=%d, rec_max=%d, prog value = %d\n",
 			t_param->hs_exit.mipi_min, t_param->hs_exit.mipi_max,
 			t_param->hs_exit.rec_min, t_param->hs_exit.rec_max,
 			t_param->hs_exit.rec);
@@ -424,7 +424,7 @@ static int mdss_dsi_phy_calc_param_phy_rev_2(struct dsi_phy_t_clk_param *t_clk,
 	if (rc)
 		goto error;
 
-	pr_debug("HS RQST-CLK: mipi_min=%d, max=%d, rec_min=%d, rec_max=%d, prog value = %d\n",
+	pr_err("HS RQST-CLK: mipi_min=%d, max=%d, rec_min=%d, rec_max=%d, prog value = %d\n",
 			t_param->hs_rqst_clk.mipi_min,
 			t_param->hs_rqst_clk.mipi_max,
 			t_param->hs_rqst_clk.rec_min,
@@ -505,11 +505,11 @@ static int mdss_dsi_phy_calc_param_phy_rev_2(struct dsi_phy_t_clk_param *t_clk,
 				t_param->clk_pre.program_value);
 		goto error;
 	}
-	pr_debug("t_clk_post: %d t_clk_pre: %d\n",
+	pr_err("t_clk_post: %d t_clk_pre: %d\n",
 			t_param->clk_post.program_value,
 			t_param->clk_pre.program_value);
 
-	pr_debug("teot_clk=%d, data=%d\n", teot_clk_lane, teot_data_lane);
+	pr_err("teot_clk=%d, data=%d\n", teot_clk_lane, teot_data_lane);
 	return 0;
 
 error:
@@ -642,7 +642,7 @@ static int mdss_dsi_phy_calc_hs_param_phy_rev_1(
 				t_param->clk_pre.program_value);
 		goto error;
 	}
-	pr_debug("t_clk_post: %d t_clk_pre: %d\n",
+	pr_err("t_clk_post: %d t_clk_pre: %d\n",
 			t_param->clk_post.program_value,
 			t_param->clk_pre.program_value);
 
@@ -726,7 +726,7 @@ static int mdss_dsi_phy_calc_param_phy_rev_1(struct dsi_phy_t_clk_param *t_clk,
 	if (rc)
 		goto error;
 
-	pr_debug("hs_rqst.rec: %d clk_zero.rec: %d clk_prepare.rec: %d\n",
+	pr_err("hs_rqst.rec: %d clk_zero.rec: %d clk_prepare.rec: %d\n",
 				t_param->hs_rqst.rec, t_param->clk_zero.rec,
 				t_param->clk_prepare.rec);
 	teot_clk_lane  = 105 + (12 * t_clk->tlpx_numer_ns
@@ -782,7 +782,7 @@ static void mdss_dsi_phy_update_timing_param(struct mdss_panel_info *pinfo,
 	reg->timing[10] = TA_GET;
 	reg->timing[11] = 0;
 
-	pr_debug("[%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x]\n",
+	pr_err("[%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x]\n",
 		reg->timing[0], reg->timing[1], reg->timing[2], reg->timing[3],
 		reg->timing[4], reg->timing[5], reg->timing[6], reg->timing[7],
 		reg->timing[8], reg->timing[9], reg->timing[10],
@@ -864,9 +864,9 @@ int mdss_dsi_phy_calc_timing_param(struct mdss_panel_info *pinfo, u32 phy_rev,
 	t_clk.escclk_denom = ESCCLK_MMSS_CC_PREDIV;
 	t_clk.tlpx_numer_ns = TLPX_NUMER;
 	t_clk.treot_ns = TR_EOT;
-	pr_debug("hperiod=%d, vperiod=%d, inter_num=%lu, lane_cfg=%d\n",
+	pr_err("hperiod=%d, vperiod=%d, inter_num=%lu, lane_cfg=%d\n",
 			hsync_period, vsync_period, inter_num, lane_config);
-	pr_debug("x=%lu, y=%lu, bitrate=%d\n", x, y, t_clk.bitclk_mbps);
+	pr_err("x=%lu, y=%lu, bitrate=%d\n", x, y, t_clk.bitclk_mbps);
 
 	switch (phy_rev) {
 	case DSI_PHY_REV_10:

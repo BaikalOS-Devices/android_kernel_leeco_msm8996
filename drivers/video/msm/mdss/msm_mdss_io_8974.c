@@ -1315,7 +1315,7 @@ int mdss_dsi_clk_refresh(struct mdss_panel_data *pdata, bool update_phy)
 
 	if (update_phy) {
 		pinfo->mipi.frame_rate = mdss_panel_calc_frame_rate(pinfo);
-		pr_debug("%s: new frame rate %d\n",
+		pr_err("%s: new frame rate %d\n",
 				__func__, pinfo->mipi.frame_rate);
 	}
 

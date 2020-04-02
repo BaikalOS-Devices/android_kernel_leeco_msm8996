@@ -14,8 +14,9 @@
 	dsi_dual_truly_cmd: qcom,mdss_dsi_truly_qhd_dualdsi_cmd_le_x2_na {
 		qcom,mdss-dsi-panel-name = "le_x2_na_mdss_dsi_truly_qhd_dualdsi_cmd";
 		qcom,mdss-dsi-panel-type = "dsi_cmd_mode";
-		qcom,mdss-dsi-panel-framerate = <90>;
         qcom,panel-allow-phy-poweroff;
+		qcom,mdss-dsi-panel-framerate = <90>;
+        qcom,mdss-dsi-idle-fps = <30>;
 		qcom,mdss-dsi-virtual-channel-id = <0>;
 		qcom,mdss-dsi-stream = <0>;
 		qcom,mdss-dsi-panel-width = <720>;

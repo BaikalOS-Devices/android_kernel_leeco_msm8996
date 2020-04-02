@@ -340,36 +340,45 @@ static irqreturn_t mdss_irq_handler(int irq, void *ptr)
 
 	if (!mdata)
 		return IRQ_NONE;
-	else if (!mdss_get_irq_enable_state(&mdss_mdp_hw))
+	else if (!mdss_get_irq_enable_state(&mdss_mdp_hw)) {
+        pr_err("mdss_irq_handler while DISABLED!\n");
 		return IRQ_HANDLED;
+    }
 
 	intr = MDSS_REG_READ(mdata, MDSS_REG_HW_INTR_STATUS);
+
+    pr_info("mdss_irq_handler irq_buzy=%d\n", mdss_mdp_hw.irq_info->irq_buzy);
 
 	mdss_mdp_hw.irq_info->irq_buzy = true;
 
 	if (intr & MDSS_INTR_MDP) {
 		spin_lock(&mdp_lock);
+        pr_info("mdss_irq_handler MDSS_HW_MDP\n");
 		mdata->mdss_util->irq_dispatch(MDSS_HW_MDP, irq, ptr);
 		spin_unlock(&mdp_lock);
 		intr &= ~MDSS_INTR_MDP;
 	}
 
 	if (intr & MDSS_INTR_DSI0) {
+        pr_info("mdss_irq_handler MDSS_HW_DSI0\n");
 		mdata->mdss_util->irq_dispatch(MDSS_HW_DSI0, irq, ptr);
 		intr &= ~MDSS_INTR_DSI0;
 	}
 
 	if (intr & MDSS_INTR_DSI1) {
+        pr_info("mdss_irq_handler MDSS_HW_DSI1\n");
 		mdata->mdss_util->irq_dispatch(MDSS_HW_DSI1, irq, ptr);
 		intr &= ~MDSS_INTR_DSI1;
 	}
 
 	if (intr & MDSS_INTR_EDP) {
+        pr_info("mdss_irq_handler MDSS_HW_EDP\n");
 		mdata->mdss_util->irq_dispatch(MDSS_HW_EDP, irq, ptr);
 		intr &= ~MDSS_INTR_EDP;
 	}
 
 	if (intr & MDSS_INTR_HDMI) {
+        pr_info("mdss_irq_handler MDSS_HW_HDMI\n");
 		mdata->mdss_util->irq_dispatch(MDSS_HW_HDMI, irq, ptr);
 		intr &= ~MDSS_INTR_HDMI;
 	}
@@ -1007,8 +1016,14 @@ static inline void mdss_mdp_intr_done(int index)
 	fnc = mdp_intr_cb[index].func;
 	arg = mdp_intr_cb[index].arg;
 	spin_unlock(&mdss_mdp_intr_lock);
-	if (fnc)
+
+
+	if (fnc) {
+        pr_info("mdss_mdp_intr_done: %d\n",index);
 		fnc(arg);
+    } else {
+        pr_info("mdss_mdp_intr_done: not found %d\n",index);
+    }
 }
 
 irqreturn_t mdss_mdp_isr(int irq, void *ptr)
@@ -1017,8 +1032,12 @@ irqreturn_t mdss_mdp_isr(int irq, void *ptr)
 	u32 isr, mask, hist_isr, hist_mask;
 	int i, j;
 
-	if (!mdata->clk_ena)
+    pr_info("mdss_mdp_isr: begin\n");
+
+	if (!mdata->clk_ena) {
+		pr_info("mdss_mdp_isr: clk_ena=false\n");
 		return IRQ_HANDLED;
+    }
 
 	for (i = 0; i < ARRAY_SIZE(mdp_intr_reg); i++) {
 		struct mdss_mdp_intr_reg reg = mdp_intr_reg[i];
@@ -1030,7 +1049,7 @@ irqreturn_t mdss_mdp_isr(int irq, void *ptr)
 		mask = readl_relaxed(mdata->mdp_base + reg.en_off);
 		writel_relaxed(isr, mdata->mdp_base + reg.clr_off);
 
-		pr_debug("%s: reg:%d isr=%x mask=%x\n",
+		pr_info("%s: reg:%d isr=%x mask=%x\n",
 				__func__, i+1, isr, mask);
 
 		isr &= mask;
@@ -1042,38 +1061,58 @@ irqreturn_t mdss_mdp_isr(int irq, void *ptr)
 					(isr & mdp_irq_map[j].irq_mask))
 				mdss_mdp_intr_done(j);
 		if (!i) {
-			if (isr & MDSS_MDP_INTR_PING_PONG_0_DONE)
+			if (isr & MDSS_MDP_INTR_PING_PONG_0_DONE) {
+		        pr_info("mdss_mdp_isr: MDSS_MDP_INTR_PING_PONG_0_DONE\n");
 				mdss_misr_crc_collect(mdata, DISPLAY_MISR_DSI0, false);
+            }
 
-			if (isr & MDSS_MDP_INTR_PING_PONG_1_DONE)
+			if (isr & MDSS_MDP_INTR_PING_PONG_1_DONE) {
+		        pr_info("mdss_mdp_isr: MDSS_MDP_INTR_PING_PONG_1_DONE\n");
 				mdss_misr_crc_collect(mdata, DISPLAY_MISR_DSI1, false);
+            }
 
-			if (isr & MDSS_MDP_INTR_INTF_0_VSYNC)
+			if (isr & MDSS_MDP_INTR_INTF_0_VSYNC) {
+		        pr_info("mdss_mdp_isr: MDSS_MDP_INTR_INTF_0_VSYNC\n");
 				mdss_misr_crc_collect(mdata, DISPLAY_MISR_EDP, true);
+            }
 
-			if (isr & MDSS_MDP_INTR_INTF_1_VSYNC)
+			if (isr & MDSS_MDP_INTR_INTF_1_VSYNC) {
+		        pr_info("mdss_mdp_isr: MDSS_MDP_INTR_INTF_1_VSYNC\n");
 				mdss_misr_crc_collect(mdata, DISPLAY_MISR_DSI0, true);
+            }
 
-			if (isr & MDSS_MDP_INTR_INTF_2_VSYNC)
+			if (isr & MDSS_MDP_INTR_INTF_2_VSYNC) {
+		        pr_info("mdss_mdp_isr: MDSS_MDP_INTR_INTF_2_VSYNC\n");
 				mdss_misr_crc_collect(mdata, DISPLAY_MISR_DSI1, true);
+            }
 
-			if (isr & MDSS_MDP_INTR_INTF_3_VSYNC)
+			if (isr & MDSS_MDP_INTR_INTF_3_VSYNC) {
+		        pr_info("mdss_mdp_isr: MDSS_MDP_INTR_INTF_3_VSYNC\n");
 				mdss_misr_crc_collect(mdata, DISPLAY_MISR_HDMI, true);
+            }
 
-			if (isr & MDSS_MDP_INTR_WB_0_DONE)
+			if (isr & MDSS_MDP_INTR_WB_0_DONE) {
+		        pr_info("mdss_mdp_isr: MDSS_MDP_INTR_WB_0_DONE\n");
 				mdss_misr_crc_collect(mdata, DISPLAY_MISR_MDP, true);
+            }
 
-			if (isr & MDSS_MDP_INTR_WB_1_DONE)
+			if (isr & MDSS_MDP_INTR_WB_1_DONE) {
+		        pr_info("mdss_mdp_isr: MDSS_MDP_INTR_WB_1_DONE\n");
 				mdss_misr_crc_collect(mdata, DISPLAY_MISR_MDP, true);
-
-			if (isr &  MDSS_MDP_INTR_WB_2_DONE)
+            }
+            
+			if (isr &  MDSS_MDP_INTR_WB_2_DONE) {
+		        pr_info("mdss_mdp_isr: MDSS_MDP_INTR_WB_2_DONE\n");
 				mdss_misr_crc_collect(mdata, DISPLAY_MISR_MDP, true);
+            }
 		}
 	}
 
 	hist_isr = readl_relaxed(mdata->mdp_base +
 			MDSS_MDP_REG_HIST_INTR_STATUS);
 	if (hist_isr != 0) {
+        pr_info("mdss_mdp_isr: hist_isr\n");
+
 		hist_mask = readl_relaxed(mdata->mdp_base +
 				MDSS_MDP_REG_HIST_INTR_EN);
 		writel_relaxed(hist_isr, mdata->mdp_base +
@@ -1081,7 +1120,9 @@ irqreturn_t mdss_mdp_isr(int irq, void *ptr)
 		hist_isr &= hist_mask;
 		if (hist_isr != 0)
 			mdss_mdp_hist_intr_done(hist_isr);
-	}
+	} else {
+        pr_info("mdss_mdp_isr: not hist_isr\n");
+    }
 
 	mdss_mdp_video_isr(mdata->video_intf, mdata->nintf);
 	return IRQ_HANDLED;
@@ -1093,10 +1134,11 @@ static int mdss_mdp_clk_update(u32 clk_idx, u32 enable)
 	struct clk *clk = mdss_mdp_get_clk(clk_idx);
 
 	if (clk) {
-		pr_debug("clk=%d en=%d\n", clk_idx, enable);
+		pr_info("clk=%d en=%d\n", clk_idx, enable);
 		if (enable) {
-			if (clk_idx == MDSS_CLK_MDP_VSYNC)
-				clk_set_rate(clk, 19200000);
+			if (clk_idx == MDSS_CLK_MDP_VSYNC) {
+				clk_set_rate(clk, 28800000);
+            }
 			ret = clk_prepare_enable(clk);
 		} else {
 			clk_disable_unprepare(clk);
@@ -1145,7 +1187,7 @@ void mdss_mdp_set_clk_rate(unsigned long rate)
 			if (IS_ERR_VALUE(clk_set_rate(clk, clk_rate)))
 				pr_err("clk_set_rate failed\n");
 			else
-				pr_debug("mdp clk rate=%lu\n", clk_rate);
+				pr_err("mdp clk rate=%lu\n", clk_rate);
 		}
 		mutex_unlock(&mdp_clk_lock);
 	} else {

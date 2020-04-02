@@ -413,7 +413,7 @@ void mdp3_vsync_timer_func(unsigned long arg)
 	struct mdp3_session_data *session = (struct mdp3_session_data *)arg;
 	if (session->status == 1 && (session->vsync_before_commit ||
 			!session->intf->active)) {
-		pr_debug("mdp3_vsync_timer_func trigger\n");
+		pr_err("mdp3_vsync_timer_func trigger\n");
 		vsync_notify_handler(session);
 		mod_timer(&session->vsync_timer,
 			jiffies + msecs_to_jiffies(session->dma->vsync_period));
