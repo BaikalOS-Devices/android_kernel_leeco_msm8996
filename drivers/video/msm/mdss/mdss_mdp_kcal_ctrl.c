@@ -39,6 +39,7 @@ struct kcal_lut_data {
 	int hue;
 	int val;
 	int cont;
+    int lock;
 };
 
 static uint32_t igc_Table_Inverted[IGC_LUT_ENTRIES] = {
@@ -312,11 +313,37 @@ static void mdss_mdp_kcal_update_igc(struct kcal_lut_data *lut_data)
 	kfree(payload);
 }
 
+
+static ssize_t kcal_lock_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	int kcal_lock,r;
+	struct kcal_lut_data *lut_data = dev_get_drvdata(dev);
+
+	r = kstrtoint(buf, 10, &kcal_lock);
+    if( r == 0 ) {
+        //return -EINVAL;
+    }
+    lut_data->lock = kcal_lock;
+	return count;
+}
+
+static ssize_t kcal_lock_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct kcal_lut_data *lut_data = dev_get_drvdata(dev);
+
+	return scnprintf(buf, PAGE_SIZE, "%d\n", lut_data->lock);
+}
+
+
 static ssize_t kcal_store(struct device *dev, struct device_attribute *attr,
 						const char *buf, size_t count)
 {
 	int kcal_r, kcal_g, kcal_b, r;
 	struct kcal_lut_data *lut_data = dev_get_drvdata(dev);
+
+    if( lut_data->lock ) return count;
 
 	r = sscanf(buf, "%d %d %d", &kcal_r, &kcal_g, &kcal_b);
 	if ((r != 3) || (kcal_r < 0 || kcal_r > 256) ||
@@ -348,6 +375,8 @@ static ssize_t kcal_min_store(struct device *dev,
 	int kcal_min, r;
 	struct kcal_lut_data *lut_data = dev_get_drvdata(dev);
 
+    if( lut_data->lock ) return count;
+
 	r = kstrtoint(buf, 10, &kcal_min);
 	if ((r) || (kcal_min < 0 || kcal_min > 256))
 		return -EINVAL;
@@ -373,6 +402,8 @@ static ssize_t kcal_enable_store(struct device *dev,
 {
 	int kcal_enable, r;
 	struct kcal_lut_data *lut_data = dev_get_drvdata(dev);
+
+    if( lut_data->lock ) return count;
 
 	r = kstrtoint(buf, 10, &kcal_enable);
 	if ((r) || (kcal_enable != 0 && kcal_enable != 1) ||
@@ -403,6 +434,8 @@ static ssize_t kcal_invert_store(struct device *dev,
 	int kcal_invert, r;
 	struct kcal_lut_data *lut_data = dev_get_drvdata(dev);
 
+    if( lut_data->lock ) return count;
+
 	r = kstrtoint(buf, 10, &kcal_invert);
 	if ((r) || (kcal_invert != 0 && kcal_invert != 1) ||
 		(lut_data->invert == kcal_invert))
@@ -430,6 +463,8 @@ static ssize_t kcal_sat_store(struct device *dev,
 	int kcal_sat, r;
 	struct kcal_lut_data *lut_data = dev_get_drvdata(dev);
 
+    if( lut_data->lock ) return count;
+
 	r = kstrtoint(buf, 10, &kcal_sat);
 	if ((r) || ((kcal_sat < 224 || kcal_sat > 383) && kcal_sat != 128))
 		return -EINVAL;
@@ -455,6 +490,8 @@ static ssize_t kcal_hue_store(struct device *dev,
 {
 	int kcal_hue, r;
 	struct kcal_lut_data *lut_data = dev_get_drvdata(dev);
+
+    if( lut_data->lock ) return count;
 
 	r = kstrtoint(buf, 10, &kcal_hue);
 	if ((r) || (kcal_hue < 0 || kcal_hue > 1536))
@@ -482,6 +519,8 @@ static ssize_t kcal_val_store(struct device *dev,
 	int kcal_val, r;
 	struct kcal_lut_data *lut_data = dev_get_drvdata(dev);
 
+    if( lut_data->lock ) return count;
+
 	r = kstrtoint(buf, 10, &kcal_val);
 	if ((r) || (kcal_val < 128 || kcal_val > 383))
 		return -EINVAL;
@@ -507,6 +546,8 @@ static ssize_t kcal_cont_store(struct device *dev,
 {
 	int kcal_cont, r;
 	struct kcal_lut_data *lut_data = dev_get_drvdata(dev);
+
+    if( lut_data->lock ) return count;
 
 	r = kstrtoint(buf, 10, &kcal_cont);
 	if ((r) || (kcal_cont < 128 || kcal_cont > 383))
@@ -539,6 +580,9 @@ static DEVICE_ATTR(kcal_hue, S_IWUSR | S_IRUGO, kcal_hue_show, kcal_hue_store);
 static DEVICE_ATTR(kcal_val, S_IWUSR | S_IRUGO, kcal_val_show, kcal_val_store);
 static DEVICE_ATTR(kcal_cont, S_IWUSR | S_IRUGO, kcal_cont_show,
 	kcal_cont_store);
+static DEVICE_ATTR(kcal_lock, S_IWUSR | S_IRUGO, kcal_lock_show,
+	kcal_lock_store);
+
 
 static int kcal_ctrl_probe(struct platform_device *pdev)
 {
@@ -578,6 +622,7 @@ static int kcal_ctrl_probe(struct platform_device *pdev)
 	ret |= device_create_file(&pdev->dev, &dev_attr_kcal_hue);
 	ret |= device_create_file(&pdev->dev, &dev_attr_kcal_val);
 	ret |= device_create_file(&pdev->dev, &dev_attr_kcal_cont);
+	ret |= device_create_file(&pdev->dev, &dev_attr_kcal_lock);
 	if (ret) {
 		pr_err("%s: unable to create sysfs entries\n", __func__);
 		return ret;
@@ -596,6 +641,7 @@ static int kcal_ctrl_remove(struct platform_device *pdev)
 	device_remove_file(&pdev->dev, &dev_attr_kcal_hue);
 	device_remove_file(&pdev->dev, &dev_attr_kcal_val);
 	device_remove_file(&pdev->dev, &dev_attr_kcal_cont);
+	device_remove_file(&pdev->dev, &dev_attr_kcal_lock);
 
 	return 0;
 }
