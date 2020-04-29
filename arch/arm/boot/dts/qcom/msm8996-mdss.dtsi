@@ -377,10 +377,10 @@
 			qcom,ctrl-supply-entry@0 {
 				reg = <0>;
 				qcom,supply-name = "vdda";
-				qcom,supply-min-voltage = <1250000>;
+				qcom,supply-min-voltage = <1200000>;
 				qcom,supply-max-voltage = <1250000>;
 				qcom,supply-enable-load = <18160>;
-				qcom,supply-disable-load = <1>;
+				qcom,supply-disable-load = <0>;
 			};
 		};
 
@@ -391,10 +391,10 @@
 			qcom,phy-supply-entry@0 {
 				reg = <0>;
 				qcom,supply-name = "vcca";
-				qcom,supply-min-voltage = <925000>;
+				qcom,supply-min-voltage = <880000>;
 				qcom,supply-max-voltage = <925000>;
 				qcom,supply-enable-load = <17000>;
-				qcom,supply-disable-load = <32>;
+				qcom,supply-disable-load = <0>;
 			};
 		};
 
