@@ -607,8 +607,8 @@
 		qcom,platform-supply-entry@3 {
 			reg = <3>;
 			qcom,supply-name = "vcca";
-			qcom,supply-min-voltage = <900000>;
-			qcom,supply-max-voltage = <926000>;
+			qcom,supply-min-voltage = <925000>;
+			qcom,supply-max-voltage = <925000>;
 			qcom,supply-enable-load = <10000>;
 			qcom,supply-disable-load = <0>;
 		};
