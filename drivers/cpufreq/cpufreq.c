@@ -621,8 +621,6 @@ static ssize_t store_##file_name					\
 		return -EINVAL;						\
 									\
 	cpufreq_verify_within_cpu_limits(&new_policy);			\
-	if (new_policy.min > new_policy.user_policy.max) new_policy.max = new_policy.min; \
-	if (new_policy.max < new_policy.user_policy.min) new_policy.min = new_policy.max; \
 									\
 	policy->user_policy.object = new_policy.object;			\
 									\
@@ -630,8 +628,12 @@ static ssize_t store_##file_name					\
 	if (ret)							\
 		pr_warn("User policy not enforced yet!\n");		\
 									\
+	pr_warn("CPU FREQ Policy set %d,%d\n", new_policy.min, new_policy.max );		\
 	return count;							\
 }
+
+//	if (new_policy.min > new_policy.user_policy.max) new_policy.max = new_policy.min; 
+//	if (new_policy.max < new_policy.user_policy.min) new_policy.min = new_policy.max; 
 
 store_one(scaling_min_freq, min);
 store_one(scaling_max_freq, max);
