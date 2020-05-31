@@ -2923,7 +2923,7 @@ static noinline int audit_inode_permission(struct inode *inode,
 			    audited, denied, result, &ad, flags);
 	if (rc)
 		return rc;
-#ednif
+#endif
 	return 0;
 }
 
