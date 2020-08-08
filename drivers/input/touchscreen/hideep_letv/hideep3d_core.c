@@ -25,6 +25,13 @@ static int hideep3d_resume(struct device *dev);
 static int fb_notifier_callback(struct notifier_block *self, unsigned long event, void *data);
 #endif
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+    #ifndef CONFIG_FB
+        #define USE_EARLYSUSPEND
+    #endif
+#endif
+
+
 void hideep3d_release_flag(void)
 {
 	unsigned char buf;
@@ -352,7 +359,7 @@ void hideep3d_init_ic(struct hideep3d_t *h3d)
 	hideep3d_reset_ic(h3d);
 }
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
+#ifdef USE_EARLYSUSPEND
 static void hideep3d_early_suspend(struct early_suspend *h)
 {
 	struct hideep3d_t *h3d = container_of(h, struct hideep_t, early_suspend);
@@ -399,6 +406,7 @@ hideep_late_resume_exit:
 }
 #endif
 
+#ifndef CONFIG_FB
 static int hideep3d_i2c_suspend(struct device *dev)
 {
 	struct hideep3d_t *h3d = dev_get_drvdata(dev);
@@ -444,6 +452,7 @@ hideep_i2c_resume_exit:
 	HIDEEP3D_DBG("exit.");
 	return 0;
 }
+#endif
 
 #ifdef CONFIG_FB
 static int hideep3d_suspend(struct device *dev)
@@ -693,7 +702,7 @@ static int hideep3d_probe(struct i2c_client *client, const struct i2c_device_id 
 	}
 #endif
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
+#ifdef USE_EARLYSUSPEND
 	h3d->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
 	h3d->early_suspend.suspend = hideep3d_early_suspend;
 	h3d->early_suspend.resume = hideep3d_late_resume;
@@ -750,7 +759,7 @@ static int hideep3d_remove(struct i2c_client *client)
 		hideep3d_power(h3d, false);
 	hideep3d_reset_ic(h3d);
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
+#ifdef USE_EARLYSUSPEND
 	unregister_early_suspend(&h3d->early_suspend);
 #endif
 	hideep3d_sysfs_exit(h3d);
@@ -778,8 +787,10 @@ static struct of_device_id hideep3d_match_table[] = {
 
 #ifdef CONFIG_PM
 static const struct dev_pm_ops hideep3d_pm_ops = {
+#ifndef CONFIG_FB
 	.suspend = hideep3d_i2c_suspend,
 	.resume = hideep3d_i2c_resume,
+#endif
 };
 #endif
 
