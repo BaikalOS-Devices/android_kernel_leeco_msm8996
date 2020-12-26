@@ -200,7 +200,6 @@ static void drawobj_sync_expire(struct kgsl_device *device,
 			device->ftbl->drawctxt_sched(device,
 				event->syncobj->base.context);
 	}
-	return true;
 }
 
 /*
@@ -258,7 +257,7 @@ static void drawobj_destroy_sync(struct kgsl_drawobj *drawobj)
 		 * If this thread clears the pending bit mask then it is
 		 * responsible for doing context put.
 		 */
-		if (!test_and_clear_bit(i, &cmdbatch->pending))
+		if (!test_and_clear_bit(i, &pending))
 			continue;
 
 		switch (event->type) {
