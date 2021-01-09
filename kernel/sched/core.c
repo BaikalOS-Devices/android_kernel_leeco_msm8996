@@ -4694,17 +4694,17 @@ static int select_fallback_rq(int cpu, struct task_struct *p)
 	}
 
 out:
-	if (state != cpuset) {
+	//if (state != cpuset) {
 		/*
 		 * Don't tell them about moving exiting tasks or
 		 * kernel threads (both mm NULL), since they never
 		 * leave kernel.
 		 */
-		if (p->mm && printk_ratelimit()) {
-			printk_deferred("process %d (%s) no longer affine to cpu%d\n",
-					task_pid_nr(p), p->comm, cpu);
-		}
-	}
+		//if (p->mm && printk_ratelimit()) {
+		//	printk_deferred("process %d (%s) no longer affine to cpu%d\n",
+		//			task_pid_nr(p), p->comm, cpu);
+		//} 
+	//}
 
 	return dest_cpu;
 }

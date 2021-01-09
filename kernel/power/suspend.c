@@ -30,12 +30,15 @@
 #include <trace/events/power.h>
 #include <linux/compiler.h>
 #include <linux/wakeup_reason.h>
-#include <linux/cpufreq.h>
 
 #include "power.h"
 
 const char *pm_labels[] = { "mem", "standby", "freeze", NULL };
 const char *pm_states[PM_SUSPEND_MAX];
+
+#include <linux/gpio.h>
+extern int slst_gpio_base_id;
+#define PROC_AWAKE_ID 12
 
 static const struct platform_suspend_ops *suspend_ops;
 static const struct platform_freeze_ops *freeze_ops;
@@ -316,7 +319,7 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 	if (error) {
 		last_dev = suspend_stats.last_failed_dev + REC_FAILED_NUM - 1;
 		last_dev %= REC_FAILED_NUM;
-		printk(KERN_ERR "PM: late suspend of devices failed\n");
+		//printk(KERN_ERR "PM: late suspend of devices failed\n");
 		log_suspend_abort_reason("%s device failed to power down",
 			suspend_stats.failed_devs[last_dev]);
 		goto Platform_finish;
@@ -329,7 +332,7 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 	if (error) {
 		last_dev = suspend_stats.last_failed_dev + REC_FAILED_NUM - 1;
 		last_dev %= REC_FAILED_NUM;
-		printk(KERN_ERR "PM: noirq suspend of devices failed\n");
+		//printk(KERN_ERR "PM: noirq suspend of devices failed\n");
 		log_suspend_abort_reason("noirq suspend of %s device failed",
 			suspend_stats.failed_devs[last_dev]);
 		goto Platform_early_resume;
@@ -363,6 +366,8 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 	arch_suspend_disable_irqs();
 	BUG_ON(!irqs_disabled());
 
+    start_logging_wakeup_reasons();
+
 	error = syscore_suspend();
 	if (!error) {
 		*wakeup = pm_wakeup_pending();
@@ -380,7 +385,6 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 			error = -EBUSY;
 		}
 
-		start_logging_wakeup_reasons();
 		syscore_resume();
 	}
 
@@ -462,7 +466,6 @@ int suspend_devices_and_enter(suspend_state_t state)
  */
 static void suspend_finish(void)
 {
-	msm_do_pm_boost(true);
 	suspend_thaw_processes();
 	pm_notifier_call_chain(PM_POST_SUSPEND);
 	pm_restore_console();
@@ -500,9 +503,7 @@ static int enter_state(suspend_state_t state)
 
 #ifdef CONFIG_PM_SYNC_BEFORE_SUSPEND
 	trace_suspend_resume(TPS("sync_filesystems"), 0, true);
-	printk(KERN_INFO "PM: Syncing filesystems ... ");
 	sys_sync();
-	printk("done.\n");
 	trace_suspend_resume(TPS("sync_filesystems"), 0, false);
 #endif
 
@@ -528,6 +529,22 @@ static int enter_state(suspend_state_t state)
 	return error;
 }
 
+static struct timespec ts_start;
+static struct timespec ts_end;
+static void pm_suspend_stats(bool start)
+{
+	long sec_int, nsec_int, elapsed;
+	if( start ) {
+		getnstimeofday(&ts_start);
+		return;
+	}
+	getnstimeofday(&ts_end);
+	sec_int = (long)ts_end.tv_sec - (long)ts_start.tv_sec;
+	nsec_int = (long)ts_end.tv_nsec - (long)ts_start.tv_nsec;
+	elapsed = (sec_int*1000) + (nsec_int/1000000);
+	pr_info("PM: suspend elapsed %ld msec\n",elapsed);
+}
+
 static void pm_suspend_marker(char *annotation)
 {
 	struct timespec ts;
@@ -535,7 +552,7 @@ static void pm_suspend_marker(char *annotation)
 
 	getnstimeofday(&ts);
 	time_to_tm(ts.tv_sec, 0, &tm);
-	pr_info("PM: suspend %s %ld-%02d-%02d %02d:%02d:%02d.%09lu UTC\n",
+	pr_debug("PM: suspend %s %ld-%02d-%02d %02d:%02d:%02d.%09lu UTC\n",
 		annotation, tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
 		tm.tm_hour, tm.tm_min, tm.tm_sec, ts.tv_nsec);
 }
@@ -555,13 +572,17 @@ int pm_suspend(suspend_state_t state)
 		return -EINVAL;
 
 	pm_suspend_marker("entry");
+    pm_suspend_stats(true);
+//	gpio_set_value(slst_gpio_base_id + PROC_AWAKE_ID, 0);
 	error = enter_state(state);
+//	gpio_set_value(slst_gpio_base_id + PROC_AWAKE_ID, 1);
 	if (error) {
 		suspend_stats.fail++;
 		dpm_save_failed_errno(error);
 	} else {
 		suspend_stats.success++;
 	}
+    pm_suspend_stats(false);
 	pm_suspend_marker("exit");
 	return error;
 }
