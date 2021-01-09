@@ -378,6 +378,12 @@ static struct wcd_mbhc_config wcd_mbhc_cfg = {
 	.enable_anc_mic_detect = false,
 };
 
+static int change_button_mapping = 0;
+module_param(change_button_mapping, int,
+	     S_IRUGO | S_IWUSR | S_IWGRP);
+MODULE_PARM_DESC(change_button_mapping, "change button mapping mode");
+
+
 #ifdef CONFIG_VENDOR_LEECO
 atomic_t tert_mi2s_rsc_ref;
 static u32 tert_ext_mclk_rate = 0;
@@ -3505,8 +3511,13 @@ static void *def_tasha_mbhc_cal(void)
 	btn_high[2] = 500;
 #else
 	btn_high[0] = 75;
-	btn_high[1] = 150;
-	btn_high[2] = 237;
+    if( !change_button_mapping ) {
+    	btn_high[1] = 150;
+    	btn_high[2] = 237;
+    } else {
+    	btn_high[1] = 250;
+    	btn_high[2] = 500;
+    }
 #endif
 	btn_high[3] = 500;
 	btn_high[4] = 500;
