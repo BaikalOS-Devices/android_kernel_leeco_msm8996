@@ -130,6 +130,9 @@ static int boost_adjust_notify(struct notifier_block *nb, unsigned long val,
 	struct cpu_sync *s = &per_cpu(sync_info, cpu);
 	unsigned int ib_min = s->input_boost_min;
 
+    if(!input_boost_enabled)
+	    return NOTIFY_OK;
+
 	switch (val) {
 	case CPUFREQ_ADJUST:
 		if (!ib_min)
@@ -143,7 +146,7 @@ static int boost_adjust_notify(struct notifier_block *nb, unsigned long val,
 
 		cpufreq_verify_within_limits(policy, ib_min, UINT_MAX);
 
-		pr_debug("CPU%u policy min after boost: %u kHz\n",
+		pr_err("CPU%u policy min after boost: %u kHz\n",
 			 cpu, policy->min);
 		break;
 	}
