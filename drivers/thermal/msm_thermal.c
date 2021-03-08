@@ -5013,16 +5013,16 @@ static void interrupt_mode_init(void)
 	if (!msm_thermal_probed)
 		return;
 
-	if (polling_enabled) {
-		polling_enabled = 0;
-		create_sensor_zone_id_map();
-		disable_msm_thermal();
-		hotplug_init();
-		freq_mitigation_init();
-		thermal_monitor_init();
-		msm_thermal_add_cx_nodes();
-		msm_thermal_add_gfx_nodes();
-	}
+	//if (polling_enabled) {
+	polling_enabled = 0;
+	create_sensor_zone_id_map();
+	disable_msm_thermal();
+	hotplug_init();
+	freq_mitigation_init();
+	thermal_monitor_init();
+	msm_thermal_add_cx_nodes();
+    msm_thermal_add_gfx_nodes();
+	//}
 }
 
 static int __ref set_enabled(const char *val, const struct kernel_param *kp)
