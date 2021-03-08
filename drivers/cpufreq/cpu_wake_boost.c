@@ -15,6 +15,7 @@
 #include <linux/cpufreq.h>
 #include <linux/fb.h>
 #include <linux/slab.h>
+#include <linux/moduleparam.h>
 
 enum boost_state {
 	NO_BOOST,
@@ -23,7 +24,7 @@ enum boost_state {
 };
 
 /* The duration in milliseconds for the wake boost */
-#define FB_BOOST_MS (300)
+#define FB_BOOST_MS (2000)
 
 struct wake_boost_info {
 	struct workqueue_struct *wq;
@@ -33,6 +34,38 @@ struct wake_boost_info {
 	struct notifier_block fb_notif;
 	enum boost_state state;
 };
+
+static struct wake_boost_info *wake_info;
+
+static unsigned int wake_boost_time;
+
+static int set_wake_boost(const char *buf, const struct kernel_param *kp)
+{
+	unsigned int val;
+
+    if (sscanf(buf, "%u\n", &val) != 1)
+	    return -EINVAL;
+
+    wake_boost_time = val;
+	queue_work(wake_info->wq, &wake_info->boost_work);
+
+	return 0;
+}
+
+static int get_wake_boost(char *buf, const struct kernel_param *kp)
+{
+	int cnt = 0;
+	cnt = snprintf(buf, PAGE_SIZE, "%u", wake_boost_time);
+	return cnt;
+}
+
+static const struct kernel_param_ops param_ops_wake_boost = {
+	.set = set_wake_boost,
+	.get = get_wake_boost,
+};
+
+module_param_cb(wake_boost, &param_ops_wake_boost, NULL, 0644);
+
 
 static void update_online_cpu_policy(void)
 {
@@ -53,7 +86,7 @@ static void wake_boost(struct work_struct *work)
 	update_online_cpu_policy();
 
 	queue_delayed_work(w->wq, &w->unboost_work,
-				msecs_to_jiffies(FB_BOOST_MS));
+				msecs_to_jiffies(wake_boost_time));
 }
 
 static void wake_unboost(struct work_struct *work)
@@ -80,7 +113,8 @@ static int do_cpu_boost(struct notifier_block *nb,
 		w->state = NO_BOOST;
 		break;
 	case BOOST:
-		policy->min = policy->max;
+		policy->min = policy->cpuinfo.max_freq;
+        if( policy->max < policy->min ) policy->max = policy->min;
 		break;
 	default:
 		break;
@@ -101,6 +135,7 @@ static int fb_notifier_callback(struct notifier_block *nb,
 		return NOTIFY_OK;
 
 	if (*blank == FB_BLANK_UNBLANK) {
+        wake_boost_time = FB_BOOST_MS;
 		queue_work(w->wq, &w->boost_work);
 	} else {
 		if (cancel_delayed_work_sync(&w->unboost_work))
@@ -123,6 +158,8 @@ static int __init cpu_wake_boost_init(void)
 		kfree(w);
 		return -ENOMEM;
 	}
+
+    wake_info = w;
 
 	INIT_WORK(&w->boost_work, wake_boost);
 	INIT_DELAYED_WORK(&w->unboost_work, wake_unboost);
